@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
@@ -36,9 +36,9 @@ export default function CaseDetails() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setUser(u);
-      const profiles = await base44.entities.DoctorProfile.filter({ created_by: u.email });
+      const profiles = await apiClient.entities.DoctorProfile.filter({ created_by: u.email });
       if (profiles.length > 0) setProfile(profiles[0]);
     };
     loadUser();
@@ -47,7 +47,7 @@ export default function CaseDetails() {
   const { data: patientCase, isLoading } = useQuery({
     queryKey: ['case', caseId],
     queryFn: async () => {
-      const cases = await base44.entities.PatientCase.filter({ id: caseId });
+      const cases = await apiClient.entities.PatientCase.filter({ id: caseId });
       return cases[0];
     },
     enabled: !!caseId,
@@ -55,7 +55,7 @@ export default function CaseDetails() {
 
   const { data: comments = [] } = useQuery({
     queryKey: ['caseComments', caseId],
-    queryFn: () => base44.entities.CaseComment.filter({ case_id: caseId }),
+    queryFn: () => apiClient.entities.CaseComment.filter({ case_id: caseId }),
     enabled: !!caseId,
   });
 
@@ -70,7 +70,7 @@ export default function CaseDetails() {
     mutationFn: async () => {
       const qualifications = profile?.qualifications?.map(q => q.degree) || [];
       
-      await base44.entities.CaseComment.create({
+      await apiClient.entities.CaseComment.create({
         case_id: caseId,
         commenter_id: user.email,
         commenter_name: profile?.full_name || user.full_name,
@@ -88,12 +88,12 @@ export default function CaseDetails() {
 
       // Update profile response count
       if (profile?.id) {
-        await base44.entities.DoctorProfile.update(profile.id, {
+        await apiClient.entities.DoctorProfile.update(profile.id, {
           response_count: (profile.response_count || 0) + 1
         });
       }
 
-      await base44.entities.PatientCase.update(caseId, {
+      await apiClient.entities.PatientCase.update(caseId, {
         discussion_count: (patientCase.discussion_count || 0) + 1
       });
     },
@@ -141,7 +141,7 @@ export default function CaseDetails() {
         }
       }
 
-      await base44.entities.CaseComment.update(comment.id, {
+      await apiClient.entities.CaseComment.update(comment.id, {
         likes: newLikes,
         dislikes: newDislikes,
         liked_by: newLikedBy,
@@ -164,7 +164,7 @@ export default function CaseDetails() {
         created_at: new Date().toISOString()
       };
 
-      await base44.entities.CaseComment.update(comment.id, {
+      await apiClient.entities.CaseComment.update(comment.id, {
         replies: [...(comment.replies || []), newReply]
       });
     },
@@ -177,7 +177,7 @@ export default function CaseDetails() {
 
   const markResolvedMutation = useMutation({
     mutationFn: async () => {
-      await base44.entities.PatientCase.update(caseId, { status: 'resolved' });
+      await apiClient.entities.PatientCase.update(caseId, { status: 'resolved' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['case', caseId]);

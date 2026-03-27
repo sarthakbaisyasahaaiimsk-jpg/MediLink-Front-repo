@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Search, Plus, Filter, Briefcase, Tag } from 'lucide-react';
@@ -40,9 +40,9 @@ export default function Cases() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setUser(u);
-      const profiles = await base44.entities.DoctorProfile.filter({ created_by: u.email });
+      const profiles = await apiClient.entities.DoctorProfile.filter({ created_by: u.email });
       if (profiles.length > 0) setProfile(profiles[0]);
     };
     loadUser();
@@ -50,7 +50,7 @@ export default function Cases() {
 
   const { data: cases = [], isLoading, refetch } = useQuery({
     queryKey: ['allCases'],
-    queryFn: () => base44.entities.PatientCase.list('-created_date', 100),
+    queryFn: () => apiClient.entities.PatientCase.filter({}, '-created_date'),
   });
 
   const filteredCases = cases.filter(c => {

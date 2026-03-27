@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MoreVertical, Search, Phone, Video, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import ChatListItem from '@/components/chat/ChatListItem';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInput from '@/components/chat/ChatInput';
+import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function Chats() {
@@ -18,15 +19,16 @@ export default function Chats() {
   const [showChatList, setShowChatList] = useState(true);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const urlParams = new URLSearchParams(window.location.search);
   const conversationIdFromUrl = urlParams.get('conversationId');
 
   useEffect(() => {
     const loadUser = async () => {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setUser(u);
-      const profiles = await base44.entities.DoctorProfile.filter({ created_by: u.email });
+      const profiles = await apiClient.entities.DoctorProfile.filter({ created_by: u.email });
       if (profiles.length > 0) setProfile(profiles[0]);
     };
     loadUser();
@@ -35,7 +37,7 @@ export default function Chats() {
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations', user?.email],
     queryFn: async () => {
-      const convos = await base44.entities.Conversation.filter({
+      const convos = await apiClient.entities.Conversation.filter({
         participants: user.email
       }, '-last_message_time');
       return convos;
@@ -54,14 +56,15 @@ export default function Chats() {
     }
   }, [conversationIdFromUrl, conversations]);
 
-  const { data: messages = [], isLoading: loadingMessages } = useQuery({
+  const { data: messages = [], isLoading: loadingMessages, refetch: refetchMessages } = useQuery({
     queryKey: ['messages', selectedConversation?.id],
-    queryFn: () => base44.entities.Message.filter(
+    queryFn: () => apiClient.entities.Message.filter(
       { conversation_id: selectedConversation.id },
       'created_date'
     ),
     enabled: !!selectedConversation?.id,
-    refetchInterval: 2000,
+    refetchInterval: selectedConversation?.id ? 3000 : false, // 3 seconds when conversation is open
+    staleTime: 1000,
   });
 
   useEffect(() => {
@@ -74,14 +77,14 @@ export default function Chats() {
         m => m.sender_id !== user.email && !m.read_by?.includes(user.email)
       );
       unreadMessages.forEach(async (msg) => {
-        await base44.entities.Message.update(msg.id, {
+        await apiClient.entities.Message.update(msg.id, {
           is_read: true,
           read_by: [...(msg.read_by || []), user.email]
         });
       });
       
       if (selectedConversation.unread_count?.[user.email] > 0) {
-        base44.entities.Conversation.update(selectedConversation.id, {
+        apiClient.entities.Conversation.update(selectedConversation.id, {
           unread_count: { ...selectedConversation.unread_count, [user.email]: 0 }
         });
       }
@@ -90,7 +93,11 @@ export default function Chats() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData) => {
-      const message = await base44.entities.Message.create({
+      if (!selectedConversation?.id || !user?.email) {
+        throw new Error('Conversation or user not loaded');
+      }
+
+      const message = await apiClient.entities.Message.create({
         conversation_id: selectedConversation.id,
         sender_id: user.email,
         sender_name: profile?.full_name || user.full_name,
@@ -102,7 +109,7 @@ export default function Chats() {
       const otherParticipant = selectedConversation.participants.find(p => p !== user.email);
       const currentUnread = selectedConversation.unread_count || {};
       
-      await base44.entities.Conversation.update(selectedConversation.id, {
+      await apiClient.entities.Conversation.update(selectedConversation.id, {
         last_message: messageData.content.slice(0, 50),
         last_message_time: new Date().toISOString(),
         last_message_sender: user.email,
@@ -117,6 +124,14 @@ export default function Chats() {
     onSuccess: () => {
       queryClient.invalidateQueries(['messages', selectedConversation?.id]);
       queryClient.invalidateQueries(['conversations']);
+    },
+    onError: (error) => {
+      console.error('Failed to send message:', error);
+      toast({
+        title: 'Failed to send message',
+        description: error.message || 'Please try again.',
+        variant: 'destructive'
+      });
     }
   });
 
@@ -257,6 +272,10 @@ export default function Chats() {
             <ChatInput
               onSend={(data) => sendMessageMutation.mutate(data)}
               disabled={sendMessageMutation.isPending}
+              conversationId={selectedConversation?.id}
+              currentUserId={user?.email}
+              senderName={profile?.full_name || user?.full_name}
+              senderPhoto={profile?.profile_photo}
             />
           </>
         ) : (

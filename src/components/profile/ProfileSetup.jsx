@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,8 +56,8 @@ export default function ProfileSetup({ onSave, initialData, loading }) {
   const handlePhotoUpload = async (file) => {
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setProfile(p => ({ ...p, profile_photo: file_url }));
+      const result = await apiClient.uploadFile(file);
+      setProfile(p => ({ ...p, profile_photo: result.file_url }));
     } catch (error) {
       console.error('Upload failed:', error);
     }

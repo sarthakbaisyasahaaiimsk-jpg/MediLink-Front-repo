@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { 
   Home, MessageCircle, Users, Briefcase, Calendar, User, Menu, X,
   Stethoscope
@@ -27,11 +27,11 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const u = await base44.auth.me();
+        const u = await apiClient.auth.me();
         setUser(u);
         
         // Get unread message count
-        const conversations = await base44.entities.Conversation.filter({
+        const conversations = await apiClient.entities.Conversation.filter({
           participants: u.email
         });
         

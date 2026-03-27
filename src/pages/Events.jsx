@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Filter, Calendar, MapPin, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ export default function Events() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setUser(u);
     };
     loadUser();
@@ -45,7 +45,7 @@ export default function Events() {
 
   const { data: events = [], isLoading, refetch } = useQuery({
     queryKey: ['allEvents'],
-    queryFn: () => base44.entities.MedicalEvent.list('date', 100),
+    queryFn: () => apiClient.entities.MedicalEvent.filter({}, 'date'),
   });
 
   const filteredEvents = events.filter(e => {
@@ -69,7 +69,7 @@ export default function Events() {
   const toggleInterestMutation = useMutation({
     mutationFn: async (event) => {
       const isInterested = event.interested?.includes(user.email);
-      await base44.entities.MedicalEvent.update(event.id, {
+      await apiClient.entities.MedicalEvent.update(event.id, {
         interested: isInterested
           ? event.interested.filter(i => i !== user.email)
           : [...(event.interested || []), user.email]
@@ -81,7 +81,7 @@ export default function Events() {
   const toggleAttendMutation = useMutation({
     mutationFn: async (event) => {
       const isAttending = event.attendees?.includes(user.email);
-      await base44.entities.MedicalEvent.update(event.id, {
+      await apiClient.entities.MedicalEvent.update(event.id, {
         attendees: isAttending
           ? event.attendees.filter(a => a !== user.email)
           : [...(event.attendees || []), user.email]

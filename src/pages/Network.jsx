@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { useQuery } from '@tanstack/react-query';
-import { createPageUrl } from '@/utils';
+import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Filter, Users, GraduationCap, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ const specialties = [
 ];
 
 export default function Network() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,9 +39,9 @@ export default function Network() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setUser(u);
-      const profiles = await base44.entities.DoctorProfile.filter({ created_by: u.email });
+      const profiles = await apiClient.entities.DoctorProfile.filter({ created_by: u.email });
       if (profiles.length > 0) setProfile(profiles[0]);
     };
     loadUser();
@@ -48,7 +49,7 @@ export default function Network() {
 
   const { data: doctors = [], isLoading } = useQuery({
     queryKey: ['allDoctors'],
-    queryFn: () => base44.entities.DoctorProfile.list('-created_date', 100),
+    queryFn: () => apiClient.entities.DoctorProfile.filter({}, '-created_date'),
   });
 
   // Filter and sort doctors
@@ -88,23 +89,22 @@ export default function Network() {
   const uniqueLocations = [...new Set(doctors.map(d => d.location_city).filter(Boolean))];
 
   const startConversation = async (doctor) => {
-    const existingConvos = await base44.entities.Conversation.filter({
-      participants: { $all: [user.email, doctor.created_by] }
+    const existingConvos = await apiClient.entities.Conversation.filter({
+      participants: [user.email, doctor.created_by]
     });
 
     if (existingConvos.length > 0) {
-      window.location.href = createPageUrl(`Chats?conversationId=${existingConvos[0].id}`);
+      navigate(`/chats?conversationId=${existingConvos[0].id}`);
       return;
     }
 
-    const newConvo = await base44.entities.Conversation.create({
+    const newConvo = await apiClient.entities.Conversation.create({
       participants: [user.email, doctor.created_by],
       participant_names: [profile?.full_name || user.full_name, doctor.full_name],
-      participant_photos: [profile?.profile_photo, doctor.profile_photo],
-      unread_count: { [user.email]: 0, [doctor.created_by]: 0 }
+      is_group: false
     });
 
-    window.location.href = createPageUrl(`Chats?conversationId=${newConvo.id}`);
+    navigate(`/chats?conversationId=${newConvo.id}`);
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Settings, LogOut, Shield, GraduationCap, Building2, MapPin, Award, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ export default function Profile() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setUser(u);
     };
     loadUser();
@@ -29,7 +29,7 @@ export default function Profile() {
 
   const { data: profiles = [], refetch } = useQuery({
     queryKey: ['myProfile', user?.email],
-    queryFn: () => base44.entities.DoctorProfile.filter({ created_by: user?.email }),
+    queryFn: () => apiClient.entities.DoctorProfile.filter({ created_by: user?.email }),
     enabled: !!user?.email,
   });
 
@@ -37,22 +37,22 @@ export default function Profile() {
 
   const { data: myCases = [] } = useQuery({
     queryKey: ['myCases', user?.email],
-    queryFn: () => base44.entities.PatientCase.filter({ created_by: user?.email }, '-created_date'),
+    queryFn: () => apiClient.entities.PatientCase.filter({ created_by: user?.email }, '-created_date'),
     enabled: !!user?.email,
   });
 
   const { data: myComments = [] } = useQuery({
     queryKey: ['myComments', user?.email],
-    queryFn: () => base44.entities.CaseComment.filter({ commenter_id: user?.email }, '-created_date'),
+    queryFn: () => apiClient.entities.CaseComment.filter({ commenter_id: user?.email }, '-created_date'),
     enabled: !!user?.email,
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
       if (profile?.id) {
-        await base44.entities.DoctorProfile.update(profile.id, data);
+        await apiClient.entities.DoctorProfile.update(profile.id, data);
       } else {
-        await base44.entities.DoctorProfile.create(data);
+        await apiClient.entities.DoctorProfile.create(data);
       }
     },
     onSuccess: () => {
@@ -62,7 +62,7 @@ export default function Profile() {
   });
 
   const handleLogout = () => {
-    base44.auth.logout();
+    apiClient.auth.logout();
   };
 
   const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';

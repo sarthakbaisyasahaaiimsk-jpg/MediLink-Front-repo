@@ -1,39 +1,33 @@
-**Welcome to your Base44 project** 
+# MediLink - Healthcare Collaboration Platform
 
 **About**
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+MediLink is a healthcare collaboration platform that enables seamless communication and case management between doctors and patients.
 
-This project contains everything you need to run your app locally.
+**Prerequisites:**
 
-**Edit the code in your local development environment**
-
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
+1. Clone the repository using the project's Git URL
 2. Navigate to the project directory
 3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+4. Create a `.env.local` file and set the backend URL:
 
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+VITE_API_BASE_URL=http://localhost:5000
 ```
 
-Run the app: `npm run dev`
+**Running the app locally:**
 
-**Publish your changes**
+```bash
+npm install
+npm run dev
+```
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+The app will run on `http://localhost:5173`
 
-**Docs & Support**
+**Backend Setup**
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+Ensure the Flask backend (FLASK_MED_PLATFORM) is running on `http://localhost:5000`
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+**API Communication**
+
+The frontend communicates with the backend through REST API endpoints defined in `src/api/api.js`. All requests are routed through the configured `VITE_API_BASE_URL` environment variable.

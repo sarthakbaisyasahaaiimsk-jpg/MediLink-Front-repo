@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, X, FileText, Image } from 'lucide-react';
-
+const API_URL = "http://127.0.0.1:5000";
 const specialties = [
   "General Medicine", "Cardiology", "Neurology", "Pediatrics", "Orthopedics",
   "Dermatology", "Psychiatry", "Radiology", "Surgery", "Emergency Medicine",
@@ -23,7 +22,6 @@ const specialties = [
 export default function NewCaseForm({ profile, onSuccess }) {
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
@@ -54,48 +52,71 @@ export default function NewCaseForm({ profile, onSuccess }) {
   };
 
   const handleFileUpload = async (files) => {
-    setUploading(true);
-    for (const file of files) {
-      try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        setAttachments(prev => [...prev, { url: file_url, name: file.name, type: file.type }]);
-      } catch (error) {
-        console.error('Upload failed:', error);
-      }
-    }
-    setUploading(false);
-  };
+  const newFiles = files.map(file => ({
+    file,
+    name: file.name,
+    type: file.type
+  }));
 
+  setAttachments(prev => [...prev, ...newFiles]);
+};
   const removeAttachment = (index) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
+  e.preventDefault();
+  setSaving(true);
 
-    try {
-      const qualifications = profile?.qualifications?.map(q => q.degree) || [];
-      
-      await base44.entities.PatientCase.create({
-        ...formData,
-        patient_age: parseInt(formData.patient_age) || null,
-        attachments: attachments.map(a => a.url),
-        poster_name: profile?.full_name || 'Doctor',
-        poster_photo: profile?.profile_photo,
-        poster_specialty: profile?.specialty,
-        poster_qualifications: qualifications,
-        status: 'open',
-        discussion_count: 0,
-        helpful_count: 0
-      });
+  try {
+    const qualifications = profile?.qualifications?.map(q => q.degree) || [];
+
+    const formDataToSend = new FormData();
+
+    // Append all form fields
+    Object.keys(formData).forEach(key => {
+      if (key === "specialty_tags") {
+        formDataToSend.append(key, formData[key].join(","));
+      } else {
+        if (key === "patient_age") {
+  formDataToSend.append(key, parseInt(formData[key]) || "");
+} else if (key === "specialty_tags") {
+  formDataToSend.append(key, formData[key].join(","));
+} else {
+  formDataToSend.append(key, formData[key]);
+}
+      }
+    });
+
+    // Extra fields
+    formDataToSend.append("poster_name", profile?.full_name || "Doctor");
+    formDataToSend.append("poster_specialty", profile?.specialty || "");
+
+    // Append files
+    attachments.forEach(att => {
+      formDataToSend.append("files", att.file);
+    });
+
+    const res = await fetch(`${API_URL}/cases`, {
+      method: "POST",
+      body: formDataToSend
+    });
+
+    const data = await res.json();
+    console.log(data);
+
+    if (res.ok) {
       onSuccess();
-    } catch (error) {
-      console.error('Failed to create case:', error);
+    } else {
+      console.error("Error:", data);
     }
 
-    setSaving(false);
-  };
+  } catch (error) {
+    console.error("Failed to create case:", error);
+  }
+
+  setSaving(false);
+};
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 py-4">
@@ -275,7 +296,7 @@ export default function NewCaseForm({ profile, onSuccess }) {
       <Button 
         type="submit" 
         className="w-full bg-teal-500 hover:bg-teal-600"
-        disabled={saving || uploading}
+        disabled={saving}
       >
         {saving ? 'Submitting...' : 'Submit Case'}
       </Button>

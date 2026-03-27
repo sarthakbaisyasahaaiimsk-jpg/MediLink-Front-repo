@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -25,7 +25,7 @@ export default function Home() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setUser(u);
     };
     loadUser();
@@ -33,7 +33,7 @@ export default function Home() {
 
   const { data: myProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['myProfile', user?.email],
-    queryFn: () => base44.entities.DoctorProfile.filter({ created_by: user?.email }),
+    queryFn: () => apiClient.entities.DoctorProfile.filter({ created_by: user?.email }),
     enabled: !!user?.email,
   });
 
@@ -47,7 +47,7 @@ export default function Home() {
 
   const { data: doctors = [] } = useQuery({
     queryKey: ['doctors'],
-    queryFn: () => base44.entities.DoctorProfile.list('-created_date', 100),
+    queryFn: () => apiClient.entities.DoctorProfile.filter({}, '-created_date'),
   });
 
   // Sort doctors by response rate and qualifications
@@ -62,21 +62,21 @@ export default function Home() {
 
   const { data: cases = [] } = useQuery({
     queryKey: ['cases'],
-    queryFn: () => base44.entities.PatientCase.filter({ status: 'open' }, '-created_date', 4),
+    queryFn: () => apiClient.entities.PatientCase.filter({ status: 'open' }, '-created_date'),
   });
 
   const { data: events = [] } = useQuery({
     queryKey: ['events'],
-    queryFn: () => base44.entities.MedicalEvent.list('date', 3),
+    queryFn: () => apiClient.entities.MedicalEvent.filter({}, 'date'),
   });
 
   const handleSaveProfile = async (profileData) => {
     setSaving(true);
     try {
       if (profile?.id) {
-        await base44.entities.DoctorProfile.update(profile.id, profileData);
+        await apiClient.entities.DoctorProfile.update(profile.id, profileData);
       } else {
-        await base44.entities.DoctorProfile.create({
+        await apiClient.entities.DoctorProfile.create({
           ...profileData,
           response_count: 0,
           helpful_votes_received: 0
@@ -91,7 +91,7 @@ export default function Home() {
   };
 
   const startConversation = async (doctor) => {
-    const existingConvos = await base44.entities.Conversation.filter({
+    const existingConvos = await apiClient.entities.Conversation.filter({
       participants: { $all: [user.email, doctor.created_by] }
     });
 

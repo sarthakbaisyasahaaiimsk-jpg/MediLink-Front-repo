@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import * as apiClient from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -66,8 +66,8 @@ export default function NewEventForm({ onSuccess }) {
   const handleImageUpload = async (file) => {
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setImageUrl(file_url);
+      const result = await apiClient.uploadFile(file);
+      setImageUrl(result.file_url);
     } catch (error) {
       console.error('Upload failed:', error);
     }
@@ -79,7 +79,7 @@ export default function NewEventForm({ onSuccess }) {
     setSaving(true);
 
     try {
-      await base44.entities.MedicalEvent.create({
+      await apiClient.entities.MedicalEvent.create({
         ...formData,
         image_url: imageUrl,
         attendees: [],

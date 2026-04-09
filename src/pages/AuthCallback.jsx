@@ -1,4 +1,3 @@
-// src/pages/AuthCallback.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext.jsx';
@@ -7,12 +6,14 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const { saveToken, fetchUser, isAuthenticated } = useAuth();
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('starting...');
 
   useEffect(() => {
     async function handleToken() {
       try {
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
+        setStatus('token: ' + (token ? token.slice(0, 20) + '...' : 'NOT FOUND'));
 
         if (!token) {
           setError('No token found in URL');
@@ -20,10 +21,13 @@ export default function AuthCallback() {
         }
 
         saveToken(token);
-        await fetchUser();
+        setStatus('token saved, fetching user...');
+        const user = await fetchUser();
+        setStatus('fetchUser done, user: ' + JSON.stringify(user));
       } catch (err) {
         console.error(err);
-        setError('Failed to log in');
+        setError('Failed to log in: ' + err.message);
+        setStatus('error: ' + err.message);
       }
     }
 
@@ -31,6 +35,7 @@ export default function AuthCallback() {
   }, []);
 
   useEffect(() => {
+    setStatus(prev => prev + ' | isAuthenticated: ' + isAuthenticated);
     if (isAuthenticated) {
       navigate('/', { replace: true });
     }
@@ -44,6 +49,7 @@ export default function AuthCallback() {
         ) : (
           <p className="text-teal-600 font-semibold">Logging in, please wait...</p>
         )}
+        <p className="text-xs text-slate-400 mt-2">{status}</p>
       </div>
     </div>
   );

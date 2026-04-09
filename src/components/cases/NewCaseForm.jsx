@@ -12,7 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, X, FileText, Image } from 'lucide-react';
-const API_URL = "https://medilink-back-repo-1.onrender.com"; // Change to your backend URL
+
+// ✅ FIX: Use /api/cases not /cases
+const API_URL = import.meta.env.VITE_API_BASE_URL || "https://medilink-back-repo-1.onrender.com";
+
 const specialties = [
   "General Medicine", "Cardiology", "Neurology", "Pediatrics", "Orthopedics",
   "Dermatology", "Psychiatry", "Radiology", "Surgery", "Emergency Medicine",
@@ -52,71 +55,64 @@ export default function NewCaseForm({ profile, onSuccess }) {
   };
 
   const handleFileUpload = async (files) => {
-  const newFiles = files.map(file => ({
-    file,
-    name: file.name,
-    type: file.type
-  }));
+    const newFiles = files.map(file => ({
+      file,
+      name: file.name,
+      type: file.type
+    }));
+    setAttachments(prev => [...prev, ...newFiles]);
+  };
 
-  setAttachments(prev => [...prev, ...newFiles]);
-};
   const removeAttachment = (index) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setSaving(true);
+    e.preventDefault();
+    setSaving(true);
 
-  try {
-    const qualifications = profile?.qualifications?.map(q => q.degree) || [];
+    try {
+      const formDataToSend = new FormData();
 
-    const formDataToSend = new FormData();
-
-    // Append all form fields
-    Object.keys(formData).forEach(key => {
-      if (key === "specialty_tags") {
-        formDataToSend.append(key, formData[key].join(","));
-      } else {
+      Object.keys(formData).forEach(key => {
         if (key === "patient_age") {
-  formDataToSend.append(key, parseInt(formData[key]) || "");
-} else if (key === "specialty_tags") {
-  formDataToSend.append(key, formData[key].join(","));
-} else {
-  formDataToSend.append(key, formData[key]);
-}
+          formDataToSend.append(key, parseInt(formData[key]) || "");
+        } else if (key === "specialty_tags") {
+          formDataToSend.append(key, formData[key].join(","));
+        } else {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+
+      formDataToSend.append("poster_name", profile?.full_name || "Doctor");
+      formDataToSend.append("poster_specialty", profile?.specialty || "");
+
+      attachments.forEach(att => {
+        formDataToSend.append("files", att.file);
+      });
+
+      // ✅ FIX: /api/cases + auth token
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(`${API_URL}/api/cases`, {
+        method: "POST",
+        body: formDataToSend,
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        onSuccess();
+      } else {
+        console.error("Error:", data);
       }
-    });
 
-    // Extra fields
-    formDataToSend.append("poster_name", profile?.full_name || "Doctor");
-    formDataToSend.append("poster_specialty", profile?.specialty || "");
-
-    // Append files
-    attachments.forEach(att => {
-      formDataToSend.append("files", att.file);
-    });
-
-    const res = await fetch(`${API_URL}/cases`, {
-      method: "POST",
-      body: formDataToSend
-    });
-
-    const data = await res.json();
-    console.log(data);
-
-    if (res.ok) {
-      onSuccess();
-    } else {
-      console.error("Error:", data);
+    } catch (error) {
+      console.error("Failed to create case:", error);
     }
 
-  } catch (error) {
-    console.error("Failed to create case:", error);
-  }
-
-  setSaving(false);
-};
+    setSaving(false);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 py-4">

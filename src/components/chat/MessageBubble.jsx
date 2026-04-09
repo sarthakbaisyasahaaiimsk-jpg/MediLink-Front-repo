@@ -1,9 +1,11 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Check, CheckCheck, FileText, Image as ImageIcon, AlertCircle, Pin, Archive } from 'lucide-react';
+import { Check, CheckCheck, FileText, Pin, Archive, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MessageReactions from './MessageReactions';
 import AudioPlayer from './AudioPlayer';
+
+const BASE_URL = "http://localhost:5000";
 
 export default function MessageBubble({ 
   message, 
@@ -24,23 +26,39 @@ export default function MessageBubble({
     switch (message.message_type) {
       case 'image':
         return (
-          <div className="max-w-xs">
+          <div className="max-w-xs relative group/image">
             <img 
-              src={message.file_url} 
+              src={`${BASE_URL}${message.file_url}`} 
               alt="Shared image" 
               className="rounded-lg max-w-full max-h-80 object-cover"
               loading="lazy"
             />
+
+            {/* ✅ Download Button (only for received images) */}
+            {!isOwn && (
+              <a
+                href={`${BASE_URL}${message.file_url}`}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded-full opacity-0 group-hover/image:opacity-100 transition z-10"
+                title="Download"
+              >
+                <Download className="w-4 h-4" />
+              </a>
+            )}
+
             {message.content && (
               <p className="mt-2 text-sm">{message.content}</p>
             )}
           </div>
         );
+
       case 'video':
         return (
           <div className="max-w-xs">
             <video 
-              src={message.file_url} 
+              src={`${BASE_URL}${message.file_url}`} 
               controls
               className="rounded-lg max-w-full max-h-80"
             />
@@ -49,43 +67,60 @@ export default function MessageBubble({
             )}
           </div>
         );
+
       case 'audio':
         return (
           <div className="max-w-xs">
-            <AudioPlayer audioUrl={message.file_url} fileName={message.content} />
-            {message.content && message.message_type === 'audio' && (
+            <AudioPlayer 
+              audioUrl={`${BASE_URL}${message.file_url}`} 
+              fileName={message.content} 
+            />
+            {message.content && (
               <p className="mt-2 text-xs text-slate-500">Voice message</p>
             )}
           </div>
         );
+
       case 'file':
         return (
           <a 
-            href={message.file_url} 
+            href={`${BASE_URL}${message.file_url}`} 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
           >
             <FileText className="w-6 h-6 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{message.content || 'Document'}</p>
+              <p className="text-sm font-medium truncate">
+                {message.content || 'Document'}
+              </p>
               <p className="text-xs opacity-70">Tap to download</p>
             </div>
           </a>
         );
+
       case 'case_reference':
         return (
           <div className="p-3 bg-white/20 rounded-lg border-l-4 border-teal-300">
-            <p className="text-xs uppercase tracking-wide opacity-70 mb-1 font-semibold">📋 Case Reference</p>
+            <p className="text-xs uppercase tracking-wide opacity-70 mb-1 font-semibold">
+              📋 Case Reference
+            </p>
             <p className="text-sm break-words">{message.content}</p>
           </div>
         );
+
       default:
-        return <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>;
+        return (
+          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+            {message.content}
+          </p>
+        );
     }
   };
 
-  const isRead = message.read_by?.length > 1 || (message.is_read && message.read_by?.includes(message.sender_id));
+  const isRead =
+    message.read_by?.length > 1 ||
+    (message.is_read && message.read_by?.includes(message.sender_id));
 
   return (
     <div className={cn(
@@ -104,10 +139,8 @@ export default function MessageBubble({
           ? "bg-teal-500 text-white rounded-br-md" 
           : "bg-slate-200 text-slate-900 rounded-bl-md"
       )}>
-        {/* Message Content */}
         {renderContent()}
         
-        {/* Message Status */}
         <div className={cn(
           "flex items-center justify-end gap-1 mt-1 text-[11px]",
           isOwn ? "text-teal-100" : "text-slate-500"
@@ -123,14 +156,12 @@ export default function MessageBubble({
           )}
         </div>
 
-        {/* Pinned Indicator */}
         {message.is_pinned && (
           <div className="absolute -top-2 -right-2 bg-amber-400 rounded-full p-1">
             <Pin className="w-3 h-3 text-amber-900" fill="currentColor" />
           </div>
         )}
 
-        {/* Archived Indicator */}
         {message.is_archived && (
           <div className="absolute -top-2 -left-2 bg-slate-400 rounded-full p-1">
             <Archive className="w-3 h-3 text-white" fill="currentColor" />
@@ -138,14 +169,12 @@ export default function MessageBubble({
         )}
       </div>
 
-      {/* Message Actions (appear on hover) */}
       {isOwn && (
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
           {!message.is_pinned && onPin && (
             <button
               onClick={() => onPin(message.id)}
               className="text-xs px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
-              title="Pin message"
             >
               📌 Pin
             </button>
@@ -154,7 +183,6 @@ export default function MessageBubble({
             <button
               onClick={() => onArchive(message.id)}
               className="text-xs px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-              title="Archive message"
             >
               📦 Archive
             </button>
@@ -162,7 +190,6 @@ export default function MessageBubble({
         </div>
       )}
 
-      {/* Reactions */}
       {onAddReaction && (
         <MessageReactions 
           message={message}

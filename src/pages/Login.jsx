@@ -16,7 +16,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const { saveToken, fetchUser, doLogin, doRegister } = useAuth();
+  // ✅ Only use doLogin and doRegister — they already handle saveToken + fetchUser internally
+  const { doLogin, doRegister } = useAuth();
   const navigate = useNavigate();
 
   // Email/password login
@@ -30,13 +31,8 @@ export default function Login() {
         setError(result.error);
         return;
       }
-      if (result?.token || result?.access_token) {
-        saveToken(result.token || result.access_token);
-        await fetchUser();
-        navigate('/dashboard');
-        return;
-      }
-      setError('Login failed: invalid server response - ' + JSON.stringify(result));
+      // ✅ Navigate to '/' which exists in App.jsx (was '/dashboard' which doesn't exist)
+      navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');
     }
@@ -54,28 +50,23 @@ export default function Login() {
         password,
         phone,
         full_name: fullName,
-        admin_code: adminCode
+        admin_code: adminCode,
       };
       const result = await doRegister(userData);
       if (result?.error) {
         setError(result.error);
         return;
       }
-      if (result?.token || result?.access_token) {
-        saveToken(result.token || result.access_token);
-        await fetchUser();
-        navigate('/dashboard');
-        return;
-      }
-      setError('Registration failed: invalid server response - ' + JSON.stringify(result));
+      // ✅ Navigate to '/' which exists in App.jsx
+      navigate('/');
     } catch (err) {
       setError(err.message || 'Registration failed');
     }
   };
 
-  // Google login
+  // Google login — redirects to backend which then redirects to /auth/callback?token=...
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/api/auth/google/login";
+    window.location.href = 'http://localhost:5000/api/auth/google/login';
   };
 
   return (
@@ -105,40 +96,40 @@ export default function Login() {
         {mode === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-3">
             <div>
-              <Label>Email</Label>
-              <Input value={email} onChange={e => setEmail(e.target.value)} required />
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div>
-              <Label>Password</Label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full">Login</Button>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <Label>Full Name</Label>
-              <Input value={fullName} onChange={e => setFullName(e.target.value)} required />
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input id="fullName" value={fullName} onChange={e => setFullName(e.target.value)} required />
             </div>
             <div>
-              <Label>Username</Label>
-              <Input value={username} onChange={e => setUsername(e.target.value)} required />
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" value={username} onChange={e => setUsername(e.target.value)} required />
             </div>
             <div>
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+              <Label htmlFor="regEmail">Email</Label>
+              <Input id="regEmail" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div>
-              <Label>Phone</Label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} required />
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} required />
             </div>
             <div>
-              <Label>Password</Label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <Label htmlFor="regPassword">Password</Label>
+              <Input id="regPassword" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             <div>
-              <Label>Admin Code (Optional)</Label>
-              <Input value={adminCode} onChange={e => setAdminCode(e.target.value)} placeholder="Enter admin key" />
+              <Label htmlFor="adminCode">Admin Code (Optional)</Label>
+              <Input id="adminCode" value={adminCode} onChange={e => setAdminCode(e.target.value)} placeholder="Enter admin key" />
             </div>
             <Button type="submit" className="w-full">Register</Button>
           </form>

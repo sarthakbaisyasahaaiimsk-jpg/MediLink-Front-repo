@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, X, FileText, Image } from 'lucide-react';
-const API_URL = "http://127.0.0.1:5000";
+const API_URL = "http://127.0.0.1:5000/api"; // Change to your backend URL
 const specialties = [
   "General Medicine", "Cardiology", "Neurology", "Pediatrics", "Orthopedics",
   "Dermatology", "Psychiatry", "Radiology", "Surgery", "Emergency Medicine",

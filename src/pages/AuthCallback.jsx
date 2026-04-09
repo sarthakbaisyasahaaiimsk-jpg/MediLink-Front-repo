@@ -19,14 +19,14 @@ export default function AuthCallback() {
           return;
         }
 
-        // Save token to local storage / context
+        // Save token to localStorage
         saveToken(token);
 
-        // Fetch user data from backend
+        // Fetch user data from backend — sets isAuthenticated = true
         await fetchUser();
 
-        // Redirect to dashboard
-        navigate('/dashboard');
+        // ✅ Navigate to '/' which exists in App.jsx (was '/dashboard' which doesn't exist)
+        navigate('/');
       } catch (err) {
         console.error(err);
         setError('Failed to log in');

@@ -41,6 +41,7 @@ export default function Network() {
     const loadUser = async () => {
       const u = await apiClient.auth.me();
       setUser(u);
+      if (!u) return; // ✅ stop here if not logged in
       const profiles = await apiClient.entities.DoctorProfile.filter({ created_by: u.email });
       if (profiles.length > 0) setProfile(profiles[0]);
     };
@@ -74,7 +75,6 @@ export default function Network() {
     })
     .sort((a, b) => {
       if (sortBy === 'response_rate') {
-        // Sort by response count + helpful votes + qualifications count
         const scoreA = (a.response_count || 0) + (a.helpful_votes_received || 0) + (a.qualifications?.length || 0) * 5;
         const scoreB = (b.response_count || 0) + (b.helpful_votes_received || 0) + (b.qualifications?.length || 0) * 5;
         return scoreB - scoreA;
@@ -89,6 +89,7 @@ export default function Network() {
   const uniqueLocations = [...new Set(doctors.map(d => d.location_city).filter(Boolean))];
 
   const startConversation = async (doctor) => {
+    if (!user) return; // ✅ stop if not logged in
     const existingConvos = await apiClient.entities.Conversation.filter({
       participants: [user.email, doctor.created_by]
     });

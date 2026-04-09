@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { auth as apiAuth } from '../api/client'; // relative path from src/lib to src/api
+import { auth as apiAuth } from '../api/client';
 import { useNavigate } from 'react-router-dom';
 
-// Create context
 const AuthContext = createContext();
 
-// Custom hook
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
@@ -15,17 +13,14 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState(null);
 
-  // Save token to localStorage
   const saveToken = (token) => {
     localStorage.setItem('authToken', token);
   };
 
-  // Clear token
   const clearToken = () => {
     localStorage.removeItem('authToken');
   };
 
-  // Fetch current user
   const fetchUser = useCallback(async () => {
     setIsLoadingAuth(true);
     setAuthError(null);
@@ -40,39 +35,37 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const userData = await apiAuth.me();
-      if (!userData) {
-        setIsAuthenticated(false);
-        setUser(null);
-        clearToken();
-        setAuthError({ type: 'auth_required' });
-      } else {
-        setUser(userData);
-        setIsAuthenticated(true);
-      }
+      setUser(userData);
+      setIsAuthenticated(true);
       setIsLoadingAuth(false);
       return userData;
     } catch (err) {
       setIsAuthenticated(false);
       setUser(null);
-      clearToken();
-      setAuthError({ type: 'auth_required', message: err.message });
+
+      // ✅ Only wipe the token on a real 401 — not on network hiccups
+      if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+        clearToken();
+        setAuthError({ type: 'auth_required', message: err.message });
+      }
+      // ✅ On network errors, keep the token so user isn't logged out
       setIsLoadingAuth(false);
       return null;
     }
   }, []);
 
-  // Run on mount
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
-  // Login function
   const doLogin = async (email, password) => {
     try {
       const res = await apiAuth.login(email, password);
-      if (res.token) {
-        saveToken(res.token);
+      if (res.token || res.access_token) {
+        saveToken(res.token || res.access_token);
         await fetchUser();
+      } else {
+        return { error: 'No token received from server' };
       }
       return res;
     } catch (err) {
@@ -80,13 +73,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register function
   const doRegister = async (userData) => {
     try {
       const res = await apiAuth.register(userData);
-      if (res.token) {
-        saveToken(res.token);
+      if (res.token || res.access_token) {
+        saveToken(res.token || res.access_token);
         await fetchUser();
+      } else {
+        return { error: 'No token received from server' };
       }
       return res;
     } catch (err) {
@@ -94,7 +88,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout
   const logout = () => {
     clearToken();
     setUser(null);
@@ -108,6 +101,7 @@ export const AuthProvider = ({ children }) => {
         user,
         isAuthenticated,
         isLoadingAuth,
+        isLoadingPublicSettings: false,
         authError,
         saveToken,
         fetchUser,

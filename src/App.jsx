@@ -10,7 +10,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Login from '@/pages/Login';
 import Admin from '@/pages/Admin';
 import React from 'react';
-import AuthCallback from '@/pages/AuthCallback.jsx'; // ✅ Keep this import
+import AuthCallback from '@/pages/AuthCallback.jsx';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -23,6 +23,7 @@ const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated } = useAuth();
   const location = useLocation();
 
+  // Show spinner while checking auth state on first load
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -31,6 +32,7 @@ const AuthenticatedApp = () => {
     );
   }
 
+  // ✅ If already logged in and trying to visit /login, redirect to home
   if (location.pathname === '/login') {
     if (isAuthenticated) return <Navigate to="/" replace />;
     return <Login />;
@@ -38,11 +40,15 @@ const AuthenticatedApp = () => {
 
   if (location.pathname === '/admin') return <Admin />;
 
+  // ✅ /auth/callback must be accessible without auth (Google OAuth lands here with token)
+  if (location.pathname === '/auth/callback') return <AuthCallback />;
+
   if (authError) {
     if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
     if (authError.type === 'auth_required') return <Navigate to="/login" replace />;
   }
 
+  // ✅ If not authenticated, redirect to login
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
@@ -68,7 +74,7 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
-      <Route path="/auth/callback" element={<AuthCallback />} /> {/* ✅ Uses imported AuthCallback */}
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -78,7 +84,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
       <Router>
-        <AuthProvider> {/* ✅ AuthProvider is inside Router */}
+        <AuthProvider>
           <NavigationTracker />
           <AuthenticatedApp />
           <Toaster />

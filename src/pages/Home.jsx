@@ -91,8 +91,9 @@ export default function Home() {
   };
 
   const startConversation = async (doctor) => {
+    if (!user) return; // ✅ stop if not logged in
     const existingConvos = await apiClient.entities.Conversation.filter({
-      participants: { $all: [user.email, doctor.created_by] }
+      participants: [user.email, doctor.created_by]
     });
 
     if (existingConvos.length > 0) {
@@ -100,7 +101,8 @@ export default function Home() {
       return;
     }
 
-    const newConvo = await base44.entities.Conversation.create({
+    // ✅ Fixed: replaced base44 with apiClient
+    const newConvo = await apiClient.entities.Conversation.create({
       participants: [user.email, doctor.created_by],
       participant_names: [profile?.full_name || user.full_name, doctor.full_name],
       participant_photos: [profile?.profile_photo, doctor.profile_photo],
@@ -124,13 +126,17 @@ export default function Home() {
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Link to={createPageUrl('Network')}>
-                <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
+                <Button size="lg" variant="outline" className="bg-white text-teal-600 hover:bg-orange-400 hover:text-white">
                   <Users className="w-5 h-5 mr-2" />
                   Find Doctors
                 </Button>
               </Link>
               <Link to={createPageUrl('Cases')}>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                <Button 
+                   size="lg" 
+                   variant="outline" 
+                   className="border-white text-teal-600 bg-white hover:bg-orange-400 hover:text-white"
+                  >
                   <Briefcase className="w-5 h-5 mr-2" />
                   Browse Cases
                 </Button>

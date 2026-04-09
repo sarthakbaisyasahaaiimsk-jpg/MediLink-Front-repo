@@ -52,8 +52,38 @@ export default function Layout({ children, currentPageName }) {
 
   // Full-screen pages without layout
   if (currentPageName === 'Chats') {
-    return <>{children}</>;
-  }
+  return (
+    <>
+      {children}
+
+      {/* Bottom Nav ONLY for Chats */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+        <div className="flex items-center justify-around py-2">
+          {navItems.slice(0, 5).map(item => (
+            <Link
+              key={item.name}
+              to={createPageUrl(item.page)}
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative",
+                currentPageName === item.page
+                  ? "text-teal-600"
+                  : "text-slate-400"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{item.name}</span>
+              {item.name === 'Chats' && unreadCount > 0 && (
+                <span className="absolute -top-1 right-1 w-4 h-4 bg-teal-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          ))}
+        </div>
+      </nav>
+    </>
+  );
+}
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -66,7 +96,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
             <div>
               <h1 className="font-bold text-slate-800">DocConnect</h1>
-              <p className="text-xs text-slate-500">Anonymous Network</p>
+              <p className="text-xs text-slate-500">Connecting Doctors</p>
             </div>
           </Link>
         </div>

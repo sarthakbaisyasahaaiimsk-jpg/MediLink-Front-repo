@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const fetchUser = useCallback(async () => {
+    // ✅ Don't reset isAuthenticated to false while loading if already authenticated
     setIsLoadingAuth(true);
     setAuthError(null);
 
@@ -43,19 +44,23 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setUser(null);
 
-      // ✅ Only wipe the token on a real 401 — not on network hiccups
       if (err.message.includes('401') || err.message.includes('Unauthorized')) {
         clearToken();
         setAuthError({ type: 'auth_required', message: err.message });
       }
-      // ✅ On network errors, keep the token so user isn't logged out
       setIsLoadingAuth(false);
       return null;
     }
   }, []);
 
   useEffect(() => {
-    fetchUser();
+    // ✅ Only run on mount if we're NOT on /auth/callback
+    // (AuthCallback handles its own fetchUser call)
+    if (!window.location.pathname.includes('/auth/callback')) {
+      fetchUser();
+    } else {
+      setIsLoadingAuth(false);
+    }
   }, [fetchUser]);
 
   const doLogin = async (email, password) => {

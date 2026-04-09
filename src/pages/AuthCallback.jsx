@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext.jsx';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { saveToken, fetchUser } = useAuth();
+  const { saveToken, fetchUser, isAuthenticated } = useAuth();
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -19,14 +19,8 @@ export default function AuthCallback() {
           return;
         }
 
-        // Save token to localStorage
         saveToken(token);
-
-        // Fetch user data from backend — sets isAuthenticated = true
         await fetchUser();
-
-        // ✅ Navigate to '/' which exists in App.jsx (was '/dashboard' which doesn't exist)
-        navigate('/');
       } catch (err) {
         console.error(err);
         setError('Failed to log in');
@@ -35,6 +29,12 @@ export default function AuthCallback() {
 
     handleToken();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">

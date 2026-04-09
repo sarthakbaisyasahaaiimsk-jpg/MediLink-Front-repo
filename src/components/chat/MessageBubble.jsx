@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils';
 import MessageReactions from './MessageReactions';
 import AudioPlayer from './AudioPlayer';
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://medilink-back-repo-1.onrender.com";
 
 export default function MessageBubble({ 
   message, 

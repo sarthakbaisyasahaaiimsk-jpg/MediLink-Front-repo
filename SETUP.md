@@ -24,7 +24,7 @@
 - `src/pages/Profile.jsx` - Now uses `apiClient` instead of `base44`
 
 ### 4. **Environment Configuration**
-- Created `.env.local` with `VITE_API_BASE_URL=http://localhost:5000`
+- Created `.env.local` with `https://medilink-back-repo-1.onrender.com`
 
 ## 🚀 Setup Instructions
 
@@ -36,10 +36,10 @@ npm install
 # 2. Start development server
 npm run dev
 ```
-The frontend will run on `http://localhost:5173`
+The frontend will run on `https://medilink-front-repo.onrender.com`
 
 ### Backend Setup
-Ensure your Flask backend (FLASK_MED_PLATFORM) is running on `http://localhost:5000`
+Ensure your Flask backend (FLASK_MED_PLATFORM) is running on `https://medilink-back-repo-1.onrender.com`
 
 The backend should have these API endpoints:
 - `/auth/me` - Get current user
@@ -64,7 +64,7 @@ const cases = await apiClient.entities.PatientCase.filter({ id: caseId });
 ```
 
 ### Environment Variables
-- `VITE_API_BASE_URL` - Base URL for Flask backend (default: `http://localhost:5000`)
+- `VITE_API_BASE_URL` - Base URL for Flask backend (default: `https://medilink-back-repo-1.onrender.com`)
 
 ## ✨ Features of New API Client
 
@@ -77,6 +77,6 @@ const cases = await apiClient.entities.PatientCase.filter({ id: caseId });
 ## 📝 Next Steps
 
 1. Update your Flask backend to expose these API endpoints
-2. Configure CORS on the backend to accept requests from `http://localhost:5173`
+2. Configure CORS on the backend to accept requests from `https://medilink-front-repo.onrender.com`
 3. Run both frontend and backend
 4. Test API communication by checking browser console for any errors

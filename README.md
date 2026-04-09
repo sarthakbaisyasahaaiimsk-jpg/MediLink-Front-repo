@@ -12,7 +12,7 @@ MediLink is a healthcare collaboration platform that enables seamless communicat
 4. Create a `.env.local` file and set the backend URL:
 
 ```
-VITE_API_BASE_URL=http://localhost:5000
+VITE_API_BASE_URL=https://medilink-back-repo-1.onrender.com
 ```
 
 **Running the app locally:**
@@ -22,11 +22,11 @@ npm install
 npm run dev
 ```
 
-The app will run on `http://localhost:5173`
+The app will run on `https://medilink-front-repo.onrender.com`
 
 **Backend Setup**
 
-Ensure the Flask backend (FLASK_MED_PLATFORM) is running on `http://localhost:5000`
+Ensure the Flask backend (FLASK_MED_PLATFORM) is running on `https://medilink-back-repo-1.onrender.com`
 
 **API Communication**
 

@@ -66,8 +66,12 @@ export default function Login() {
 
   // Google login — redirects to backend which then redirects to /auth/callback?token=...
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google/login';
-  };
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://medilink-back-repo-1.onrender.com";
+
+  window.location.href = `${BASE_URL}/api/auth/google/login`;
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">

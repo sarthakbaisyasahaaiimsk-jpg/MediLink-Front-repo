@@ -14,7 +14,7 @@ python app.py
 
 ✅ **Expected output:**
 ```
-Running on http://127.0.0.1:5000
+Running on https://medilink-back-repo-1.onrender.com
 ```
 
 ---
@@ -33,14 +33,14 @@ npm run dev
 
 ✅ **Expected output:**
 ```
-Local:   http://localhost:5173/
+Local:   https://medilink-front-repo.onrender.com
 ```
 
 ---
 
 ## Step 3: Test in Browser
 
-1. Open **http://localhost:5173**
+1. Open **https://medilink-front-repo.onrender.com**
 2. You should see MediLink homepage
 3. Click **"Sign Up"** or **"Login"**
 
@@ -69,7 +69,7 @@ Open **Browser DevTools** (F12) → **Network** tab
 3. Click **"Save Profile"**
 
 ### What to look for in Network tab:
-- Request to `http://localhost:5000/api/doctor-profiles`
+- Request to `https://medilink-back-repo-1.onrender.com`
 - Request method: `POST`
 - Status: `200` or `201` (success)
 - Response includes profile data
@@ -80,7 +80,7 @@ Open **Browser DevTools** (F12) → **Network** tab
 
 1. In **Profile**, upload a photo
 2. Check Network tab for:
-   - Request to `http://localhost:5000/api/upload`
+   - Request to `https://medilink-back-repo-1.onrender.com`
    - Status: `200`
    - Response with `file_url`
 
@@ -91,7 +91,7 @@ Open **Browser DevTools** (F12) → **Network** tab
 ### If you see "404 Not Found"
 ```
 ❌ Route doesn't exist
-✅ Solution: Check backend is running on http://localhost:5000
+✅ Solution: Check backend is running on https://medilink-back-repo-1.onrender.com
 ✅ Solution: Verify route is registered in app.py
 ```
 
@@ -106,7 +106,7 @@ Open **Browser DevTools** (F12) → **Network** tab
 ```
 ❌ Backend rejecting frontend requests
 ✅ Solution: Restart backend after CORS config changes
-✅ Solution: Check frontend is on http://localhost:5173
+✅ Solution: Check frontend is on https://medilink-front-repo.onrender.com
 ```
 
 ### If backend won't start
@@ -122,7 +122,7 @@ Open **Browser DevTools** (F12) → **Network** tab
 
 ### Test login endpoint:
 ```bash
-curl -X POST http://localhost:5000/api/auth/login ^
+curl -X POST https://medilink-back-repo-1.onrender.com ^
   -H "Content-Type: application/json" ^
   -d "{\"email\": \"test@example.com\", \"password\": \"password123\"}"
 ```
@@ -146,8 +146,8 @@ curl -X POST http://localhost:5000/api/auth/login ^
 
 | Service | URL | Port |
 |---------|-----|------|
-| Frontend | http://localhost:5173 | 5173 |
-| Backend | http://localhost:5000 | 5000 |
+| Frontend | https://medilink-front-repo.onrender.com | 5173 |
+| Backend | https://medilink-back-repo-1.onrender.com | 5000 |
 | Database | SQLite (file-based) | N/A |
 
 ---

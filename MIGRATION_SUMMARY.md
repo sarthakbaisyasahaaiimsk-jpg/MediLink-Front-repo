@@ -44,7 +44,7 @@ Successfully migrated MediLink from Base44 SDK to a custom REST API with Flask b
 
 #### **.env.local**
 ```
-VITE_API_BASE_URL=http://localhost:5000
+VITE_API_BASE_URL=VITE_API_BASE_URL=https://medilink-back-repo-1.onrender.com
 ```
 
 ### Frontend - Modified Files
@@ -183,7 +183,7 @@ VITE_API_BASE_URL=http://localhost:5000
 #### **app.py** (Updated)
 ```python
 ✅ CORS configured for:
-   - http://localhost:5173 (frontend)
+   - https://medilink-front-repo.onrender.com (frontend)
    - http://localhost:3000 (alternative)
    - Methods: GET, POST, PUT, DELETE, OPTIONS
 
@@ -305,7 +305,7 @@ const profiles = await apiClient.entities.DoctorProfile.filter({
 
 // File upload
 const fileResult = await apiClient.uploadFile(file);
-console.log(fileResult.file_url); // http://localhost:5000/uploads/...
+console.log(fileResult.file_url); // https://medilink-back-repo-1.onrender.com/uploads/...
 
 // Logout
 apiClient.auth.logout(); // Clears token and redirects
@@ -397,8 +397,8 @@ These still work for backward compatibility:
 
 ## Testing Checklist
 
-- [ ] Backend starts on http://localhost:5000
-- [ ] Frontend starts on http://localhost:5173
+- [ ] Backend starts on https://medilink-back-repo-1.onrender.com
+- [ ] Frontend starts on https://medilink-front-repo.onrender.com
 - [ ] Can register new account
 - [ ] Can login and get JWT token
 - [ ] Token appears in localStorage as 'authToken'

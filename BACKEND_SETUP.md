@@ -1,8 +1,8 @@
 # MediLink - Complete Setup Guide
 
 ## Project Overview
-- **Frontend:** React + Vite (runs on `http://localhost:5173`)
-- **Backend:** Flask + SQLAlchemy (runs on `http://localhost:5000`)
+- **Frontend:** React + Vite (runs on `https://medilink-front-repo.onrender.com`)
+- **Backend:** Flask + SQLAlchemy (runs on `https://medilink-back-repo-1.onrender.com`)
 - **Database:** SQLite
 - **Authentication:** JWT tokens
 
@@ -39,7 +39,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///app.db'  # SQLite database
 # Make sure virtual environment is activated
 python app.py
 ```
-Backend runs on: **`http://localhost:5000`**
+Backend runs on: **`https://medilink-back-repo-1.onrender.com`**
 
 ### Database Models Created
 - ✅ User - Email authentication
@@ -75,7 +75,7 @@ npm run dev
 ### Environment Configuration
 File: `.env.local` (already created)
 ```
-VITE_API_BASE_URL=http://localhost:5000
+VITE_API_BASE_URL=https://medilink-back-repo-1.onrender.com
 ```
 
 ### Build for Production
@@ -351,7 +351,7 @@ npm run dev
 # Listens on http://localhost:5173
 ```
 
-Open browser: `http://localhost:5173`
+Open browser: `https://medilink-front-repo.onrender.com`
 
 ---
 
@@ -465,7 +465,7 @@ export FLASK_ENV=production
 
 ### Update Environment Variables
 ```
-VITE_API_BASE_URL=https://your-production-backend.com
+VITE_API_BASE_URL=https://medilink-back-repo-1.onrender.com
 ```
 
 ---

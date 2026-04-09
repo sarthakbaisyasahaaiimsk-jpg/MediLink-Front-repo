@@ -1,6 +1,8 @@
 import io from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const SOCKET_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://medilink-back-repo-1.onrender.com";
 
 class WebSocketClient {
   constructor() {
@@ -13,15 +15,15 @@ class WebSocketClient {
     if (this.connected) return;
 
     this.socket = io(SOCKET_URL, {
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
-      transports: ['websocket', 'polling'],
-      extraHeaders: {
-        Authorization: `Bearer ${localStorage.getItem('authToken')}`
-      }
-    });
+  auth: {
+    token: localStorage.getItem("authToken"),
+  },
+  transports: ["websocket", "polling"],
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: 10,
+});
 
     this.socket.on('connect', () => {
       console.log('WebSocket connected');

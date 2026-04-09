@@ -1,9 +1,15 @@
-// API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000";
+// API Configuration (Production Safe)
 
-// Helper function for API requests
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://medilink-back-repo-1.onrender.com";
+
+// ========================
+// Helper function
+// ========================
 async function apiCall(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
+
   const defaultOptions = {
     headers: {
       "Content-Type": "application/json",
@@ -11,16 +17,27 @@ async function apiCall(endpoint, options = {}) {
     },
   };
 
-  const response = await fetch(url, { ...defaultOptions, ...options });
-  
+  const response = await fetch(url, {
+    ...defaultOptions,
+    ...options,
+  });
+
   if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+    let errorMessage = "API Error";
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+    } catch (e) {}
+
+    throw new Error(errorMessage);
   }
-  
+
   return response.json();
 }
 
-// ===== EVENTS =====
+// ========================
+// EVENTS API
+// ========================
 
 // 📥 GET EVENTS
 export const getEvents = async () => {
@@ -35,14 +52,14 @@ export const addEvent = async (data) => {
   });
 };
 
-// ⭐ INTERESTED
+// ⭐ MARK INTERESTED
 export const markInterested = async (id) => {
   return apiCall(`/events/${id}/interested`, {
     method: "POST",
   });
 };
 
-// ✅ ATTEND
+// ✅ MARK ATTENDING
 export const markAttending = async (id) => {
   return apiCall(`/events/${id}/attend`, {
     method: "POST",

@@ -28,7 +28,7 @@ type .env.local
 ```
 # MediLink Frontend Configuration
 # Backend API URL - Update this to match your Flask backend URL
-VITE_API_BASE_URL=http://localhost:5000
+VITE_API_BASE_URL=https://medilink-back-repo-1.onrender.com
 ```
 
 ### 4. Check API Client
@@ -306,18 +306,18 @@ If all checkboxes are ✅, you're ready!
 cd C:\Users\sarth\Downloads\flask_med_platform
 venv\Scripts\activate
 python app.py
-# Expected: Running on http://127.0.0.1:5000
+# Expected: Running on https://medilink-back-repo-1.onrender.com
 ```
 
 ### Launch Frontend (New Terminal)
 ```bash
 cd C:\Users\sarth\MediLink
 npm run dev
-# Expected: Local: http://localhost:5173/
+# Expected: Local: https://medilink-front-repo.onrender.com
 ```
 
 ### Open in Browser
-Go to **http://localhost:5173**
+Go to **https://medilink-front-repo.onrender.com**
 
 ---
 
@@ -354,8 +354,8 @@ pip install -r requirements.txt
 ### ❌ "CORS error in browser console"
 ```
 Solution: 
-1. Ensure frontend is on http://localhost:5173
-2. Ensure backend CORS includes http://localhost:5173
+1. Ensure frontend is on https://medilink-front-repo.onrender.com
+2. Ensure backend CORS includes https://medilink-front-repo.onrender.com
 3. Restart backend after CORS changes
 ```
 

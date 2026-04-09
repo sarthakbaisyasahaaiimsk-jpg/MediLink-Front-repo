@@ -146,8 +146,8 @@ curl -X POST https://medilink-back-repo-1.onrender.com ^
 
 | Service | URL | Port |
 |---------|-----|------|
-| Frontend | https://medilink-front-repo.onrender.com | 5173 |
-| Backend | https://medilink-back-repo-1.onrender.com | 5000 |
+| Frontend | https://medilink-front-repo.onrender.com | |
+| Backend | https://medilink-back-repo-1.onrender.com | |
 | Database | SQLite (file-based) | N/A |
 
 ---

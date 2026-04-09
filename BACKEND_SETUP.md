@@ -341,14 +341,14 @@ const result = await apiClient.uploadFile(file);
 cd C:\Users\sarth\Downloads\flask_med_platform
 venv\Scripts\activate
 python app.py
-# Listens on http://localhost:5000
+# Listens on https://medilink-back-repo-1.onrender.com
 ```
 
 ### Terminal 2 - Frontend
 ```bash
 cd C:\Users\sarth\MediLink
 npm run dev
-# Listens on http://localhost:5173
+# Listens on https://medilink-front-repo.onrender.com
 ```
 
 Open browser: `https://medilink-front-repo.onrender.com`

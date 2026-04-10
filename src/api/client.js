@@ -331,6 +331,27 @@ export const references = {
     apiCall("/references/saved"),
 };
 // ========================
+// ZOTERO
+// ========================
+export const zotero = {
+  status: async () =>
+    apiCall("/zotero/status"),
+
+  connect: async () =>
+    apiCall("/zotero/connect"),
+
+  push: async (pmids) =>
+    apiCall("/zotero/push", {
+      method: "POST",
+      body: JSON.stringify(pmids ? { pmids } : {}),
+    }),
+
+  disconnect: async () =>
+    apiCall("/zotero/disconnect", {
+      method: "DELETE",
+    }),
+};
+// ========================
 // EXPORT GROUP
 // ========================
 export const entities = {
@@ -343,4 +364,4 @@ export const entities = {
   References: references,
 };
 
-export default { auth, entities };
+export default { auth, entities, zotero };

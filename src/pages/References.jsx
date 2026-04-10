@@ -10,7 +10,7 @@ function ReferenceCard({ paper, onSave, saved }) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col gap-3 hover:border-teal-200 hover:shadow-sm transition-all duration-200">
-      
+
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge className="bg-teal-50 text-teal-700 border-0 text-xs font-medium">
@@ -32,12 +32,12 @@ function ReferenceCard({ paper, onSave, saved }) {
         </button>
       </div>
 
-        <a
+      <a
         href={paper.url}
         target="_blank"
         rel="noreferrer"
         className="text-slate-800 font-semibold text-sm leading-snug hover:text-teal-600 transition-colors line-clamp-2"
-        >
+      >
         {paper.title}
       </a>
 
@@ -114,6 +114,11 @@ export default function References() {
   const [activeTab, setActiveTab]     = useState('search');
   const [savedPmids, setSavedPmids]   = useState(new Set());
 
+  // ── Zotero state ──────────────────────────────────────
+  const [zoteroConnected, setZoteroConnected] = useState(false);
+  const [zoteroLoading, setZoteroLoading]     = useState(false);
+  const [zoteroMessage, setZoteroMessage]     = useState('');
+
   useEffect(() => {
     async function loadSaved() {
       try {
@@ -124,8 +129,71 @@ export default function References() {
         // not logged in or error — silent fail
       }
     }
+
+    async function checkZotero() {
+      try {
+        const res = await apiClient.zotero.status();
+        setZoteroConnected(res.connected);
+      } catch {
+        // silent fail
+      }
+    }
+
+    // Handle redirect back from Zotero OAuth
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('zotero') === 'connected') {
+      setZoteroConnected(true);
+      setZoteroMessage('Zotero connected successfully!');
+      window.history.replaceState({}, '', '/references');
+      setTimeout(() => setZoteroMessage(''), 4000);
+    } else if (params.get('zotero') === 'error') {
+      setZoteroMessage('Zotero connection failed. Please try again.');
+      window.history.replaceState({}, '', '/references');
+      setTimeout(() => setZoteroMessage(''), 4000);
+    }
+
     loadSaved();
+    checkZotero();
   }, []);
+
+  async function handleZoteroExport() {
+    setZoteroLoading(true);
+    setZoteroMessage('');
+    try {
+      if (!zoteroConnected) {
+        // Start OAuth — redirects user to Zotero to approve
+        const res = await apiClient.zotero.connect();
+        if (res.auth_url) {
+          window.location.href = res.auth_url;
+          return;
+        }
+        if (res.connected) {
+          setZoteroConnected(true);
+        }
+      } else {
+        // Already connected — push all saved refs
+        const res = await apiClient.zotero.push();
+        setZoteroMessage(res.message || 'References pushed to Zotero!');
+        setTimeout(() => setZoteroMessage(''), 4000);
+      }
+    } catch (err) {
+      setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
+      setTimeout(() => setZoteroMessage(''), 5000);
+    } finally {
+      setZoteroLoading(false);
+    }
+  }
+
+  async function handleZoteroDisconnect() {
+    try {
+      await apiClient.zotero.disconnect();
+      setZoteroConnected(false);
+      setZoteroMessage('Zotero disconnected.');
+      setTimeout(() => setZoteroMessage(''), 3000);
+    } catch {
+      // silent fail
+    }
+  }
 
   async function handleSearch(e) {
     e?.preventDefault();
@@ -323,9 +391,50 @@ export default function References() {
               </div>
             ) : (
               <>
-                <p className="text-sm text-slate-500 mb-4">
-                  {savedPapers.length} saved {savedPapers.length === 1 ? 'paper' : 'papers'}
-                </p>
+                {/* Zotero toolbar */}
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                  <p className="text-sm text-slate-500">
+                    {savedPapers.length} saved {savedPapers.length === 1 ? 'paper' : 'papers'}
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    {zoteroMessage && (
+                      <span className={`text-xs px-3 py-1 rounded-full ${
+                        zoteroMessage.toLowerCase().includes('error') ||
+                        zoteroMessage.toLowerCase().includes('failed')
+                          ? 'bg-red-50 text-red-600'
+                          : 'bg-teal-50 text-teal-700'
+                      }`}>
+                        {zoteroMessage}
+                      </span>
+                    )}
+
+                    <Button
+                      onClick={handleZoteroExport}
+                      disabled={zoteroLoading}
+                      variant="outline"
+                      className="flex items-center gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
+                    >
+                      <FlaskConical className="w-4 h-4" />
+                      {zoteroLoading
+                        ? 'Working…'
+                        : zoteroConnected
+                          ? 'Export to Zotero'
+                          : 'Connect Zotero'
+                      }
+                    </Button>
+
+                    {zoteroConnected && (
+                      <button
+                        onClick={handleZoteroDisconnect}
+                        className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        Disconnect
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {savedPapers.map(paper => (
                     <ReferenceCard

@@ -5,10 +5,6 @@ import { cn } from '@/lib/utils';
 import MessageReactions from './MessageReactions';
 import AudioPlayer from './AudioPlayer';
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://medilink-back-repo-1.onrender.com";
-
 export default function MessageBubble({ 
   message, 
   isOwn, 
@@ -30,7 +26,7 @@ export default function MessageBubble({
         return (
           <div className="max-w-xs relative group/image">
             <img 
-              src={`${BASE_URL}${message.file_url}`} 
+              src={message.file_url} 
               alt="Shared image" 
               className="rounded-lg max-w-full max-h-80 object-cover"
               loading="lazy"
@@ -39,7 +35,7 @@ export default function MessageBubble({
             {/* ✅ Download Button (only for received images) */}
             {!isOwn && (
               <a
-                href={`${BASE_URL}${message.file_url}`}
+                href={message.file_url}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
@@ -60,7 +56,7 @@ export default function MessageBubble({
         return (
           <div className="max-w-xs">
             <video 
-              src={`${BASE_URL}${message.file_url}`} 
+              src={message.file_url}
               controls
               className="rounded-lg max-w-full max-h-80"
             />
@@ -74,7 +70,7 @@ export default function MessageBubble({
         return (
           <div className="max-w-xs">
             <AudioPlayer 
-              audioUrl={`${BASE_URL}${message.file_url}`} 
+              audioUrl={message.file_url} 
               fileName={message.content} 
             />
             {message.content && (
@@ -86,7 +82,7 @@ export default function MessageBubble({
       case 'file':
         return (
           <a 
-            href={`${BASE_URL}${message.file_url}`} 
+            href={message.file_url}
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"

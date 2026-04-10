@@ -307,7 +307,16 @@ export const medicalEvent = {
       body: JSON.stringify(data),
     }),
 };
-
+// ========================
+// REFERENCES
+// ========================
+export const references = {
+  search: async (query) =>
+    apiCall("/references/search", {
+      method: "POST",
+      body: JSON.stringify({ query }),
+    }),
+};
 // ========================
 // EXPORT GROUP
 // ========================
@@ -318,6 +327,7 @@ export const entities = {
   Conversation: conversation,
   Message: message,
   MedicalEvent: medicalEvent,
+  References: references,
 };
 
 export default { auth, entities };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as apiClient from '@/api/client';
 import { Search, BookOpen, ExternalLink, Bookmark, BookMarked, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -119,14 +120,7 @@ export default function References() {
     setError('');
     setHasSearched(true);
     try {
-      const res = await fetch('/api/references/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ query }),
-      });
-      if (!res.ok) throw new Error('Search failed');
-      const data = await res.json();
+      const data = await apiClient.references.search(query);
       setResults(data.results || []);
     } catch {
       setError('Search failed. Please check your connection and try again.');

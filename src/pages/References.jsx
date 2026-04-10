@@ -10,7 +10,6 @@ function ReferenceCard({ paper, onSave, saved }) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col gap-3 hover:border-teal-200 hover:shadow-sm transition-all duration-200">
-
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge className="bg-teal-50 text-teal-700 border-0 text-xs font-medium">
@@ -161,7 +160,6 @@ export default function References() {
     setZoteroMessage('');
     try {
       if (!zoteroConnected) {
-        // Start OAuth — redirects user to Zotero to approve
         const res = await apiClient.zotero.connect();
         if (res.auth_url) {
           window.location.href = res.auth_url;
@@ -171,7 +169,6 @@ export default function References() {
           setZoteroConnected(true);
         }
       } else {
-        // Already connected — push all saved refs
         const res = await apiClient.zotero.push();
         setZoteroMessage(res.message || 'References pushed to Zotero!');
         setTimeout(() => setZoteroMessage(''), 4000);
@@ -242,6 +239,7 @@ export default function References() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
 
+      {/* ── Header ── */}
       <div className="bg-white border-b border-slate-100 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -309,8 +307,10 @@ export default function References() {
         </div>
       </div>
 
+      {/* ── Body ── */}
       <div className="max-w-7xl mx-auto px-4 py-8">
 
+        {/* Search tab */}
         {activeTab === 'search' && (
           <>
             {!hasSearched && !loading && (
@@ -372,6 +372,7 @@ export default function References() {
           </>
         )}
 
+        {/* Saved tab */}
         {activeTab === 'saved' && (
           <>
             {savedPapers.length === 0 ? (
@@ -391,58 +392,63 @@ export default function References() {
               </div>
             ) : (
               <>
-        {/* Zotero toolbar */}
-<div className="flex items-center gap-4 mb-4 flex-wrap">
-  <p className="text-sm text-slate-500">
-    {savedPapers.length} saved {savedPapers.length === 1 ? 'paper' : 'papers'}
-  </p>
+                {/* Zotero toolbar */}
+                <div className="flex items-center gap-4 mb-4 flex-wrap">
+                  <p className="text-sm text-slate-500">
+                    {savedPapers.length} saved {savedPapers.length === 1 ? 'paper' : 'papers'}
+                  </p>
 
-  {zoteroMessage && (
-    <span className={`text-xs px-3 py-1 rounded-full ${
-      zoteroMessage.toLowerCase().includes('error') ||
-      zoteroMessage.toLowerCase().includes('failed')
-        ? 'bg-red-50 text-red-600'
-        : 'bg-teal-50 text-teal-700'
-    }`}>
-      {zoteroMessage}
-    </span>
-  )}
+                  {zoteroMessage && (
+                    <span className={`text-xs px-3 py-1 rounded-full ${
+                      zoteroMessage.toLowerCase().includes('error') ||
+                      zoteroMessage.toLowerCase().includes('failed')
+                        ? 'bg-red-50 text-red-600'
+                        : 'bg-teal-50 text-teal-700'
+                    }`}>
+                      {zoteroMessage}
+                    </span>
+                  )}
 
-  <Button
-    onClick={handleZoteroExport}
-    disabled={zoteroLoading}
-    variant="outline"
-    className="flex items-center gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
-  >
-    <FlaskConical className="w-4 h-4" />
-    {zoteroLoading
-      ? 'Working…'
-      : zoteroConnected
-        ? 'Export to Zotero'
-        : 'Connect Zotero'
-    }
-  </Button>
+                  <Button
+                    onClick={handleZoteroExport}
+                    disabled={zoteroLoading}
+                    variant="outline"
+                    className="flex items-center gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                    {zoteroLoading
+                      ? 'Working…'
+                      : zoteroConnected
+                        ? 'Export to Zotero'
+                        : 'Connect Zotero'
+                    }
+                  </Button>
 
-  {zoteroConnected && (
-    <button
-      onClick={handleZoteroDisconnect}
-      className="text-xs text-slate-400 hover:text-red-500 transition-colors"
-    >
-      Disconnect
-    </button>
-  )}
-</div>
+                  {zoteroConnected && (
+                    <button
+                      onClick={handleZoteroDisconnect}
+                      className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      Disconnect
+                    </button>
+                  )}
+                </div>
 
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {savedPapers.map(paper => (
-    <ReferenceCard
-      key={paper.pmid}
-      paper={paper}
-      onSave={handleSave}
-      saved={true}
-    />
-  ))}
-</div>
+                {/* Paper grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {savedPapers.map(paper => (
+                    <ReferenceCard
+                      key={paper.pmid}
+                      paper={paper}
+                      onSave={handleSave}
+                      saved={true}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
 
       </div>
     </div>

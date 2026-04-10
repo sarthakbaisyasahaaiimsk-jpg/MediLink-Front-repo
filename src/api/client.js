@@ -310,11 +310,11 @@ export const medicalEvent = {
 // REFERENCES
 // ========================
 export const references = {
-  search: async (query) =>
-    apiCall("/references/search", {
-      method: "POST",
-      body: JSON.stringify({ query }),
-    }),
+  search: async (query, offset = 0, limit = 20) =>
+  apiCall("/references/search", {
+    method: "POST",
+    body: JSON.stringify({ query, offset, limit }),
+  }),
 
   save: async (paper) =>
     apiCall("/references/save", {

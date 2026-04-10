@@ -391,64 +391,58 @@ export default function References() {
               </div>
             ) : (
               <>
-                {/* Zotero toolbar */}
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                  <p className="text-sm text-slate-500">
-                    {savedPapers.length} saved {savedPapers.length === 1 ? 'paper' : 'papers'}
-                  </p>
+        {/* Zotero toolbar */}
+<div className="flex items-center gap-4 mb-4 flex-wrap">
+  <p className="text-sm text-slate-500">
+    {savedPapers.length} saved {savedPapers.length === 1 ? 'paper' : 'papers'}
+  </p>
 
-                  <div className="flex items-center gap-2">
-                    {zoteroMessage && (
-                      <span className={`text-xs px-3 py-1 rounded-full ${
-                        zoteroMessage.toLowerCase().includes('error') ||
-                        zoteroMessage.toLowerCase().includes('failed')
-                          ? 'bg-red-50 text-red-600'
-                          : 'bg-teal-50 text-teal-700'
-                      }`}>
-                        {zoteroMessage}
-                      </span>
-                    )}
+  {zoteroMessage && (
+    <span className={`text-xs px-3 py-1 rounded-full ${
+      zoteroMessage.toLowerCase().includes('error') ||
+      zoteroMessage.toLowerCase().includes('failed')
+        ? 'bg-red-50 text-red-600'
+        : 'bg-teal-50 text-teal-700'
+    }`}>
+      {zoteroMessage}
+    </span>
+  )}
 
-                    <Button
-                      onClick={handleZoteroExport}
-                      disabled={zoteroLoading}
-                      variant="outline"
-                      className="flex items-center gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
-                    >
-                      <FlaskConical className="w-4 h-4" />
-                      {zoteroLoading
-                        ? 'Working…'
-                        : zoteroConnected
-                          ? 'Export to Zotero'
-                          : 'Connect Zotero'
-                      }
-                    </Button>
+  <Button
+    onClick={handleZoteroExport}
+    disabled={zoteroLoading}
+    variant="outline"
+    className="flex items-center gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
+  >
+    <FlaskConical className="w-4 h-4" />
+    {zoteroLoading
+      ? 'Working…'
+      : zoteroConnected
+        ? 'Export to Zotero'
+        : 'Connect Zotero'
+    }
+  </Button>
 
-                    {zoteroConnected && (
-                      <button
-                        onClick={handleZoteroDisconnect}
-                        className="text-xs text-slate-400 hover:text-red-500 transition-colors"
-                      >
-                        Disconnect
-                      </button>
-                    )}
-                  </div>
-                </div>
+  {zoteroConnected && (
+    <button
+      onClick={handleZoteroDisconnect}
+      className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+    >
+      Disconnect
+    </button>
+  )}
+</div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {savedPapers.map(paper => (
-                    <ReferenceCard
-                      key={paper.pmid}
-                      paper={paper}
-                      onSave={handleSave}
-                      saved={true}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {savedPapers.map(paper => (
+    <ReferenceCard
+      key={paper.pmid}
+      paper={paper}
+      onSave={handleSave}
+      saved={true}
+    />
+  ))}
+</div>
 
       </div>
     </div>

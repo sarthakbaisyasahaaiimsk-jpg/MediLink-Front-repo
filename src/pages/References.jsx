@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import * as apiClient from '@/api/client';
+import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, ExternalLink, Bookmark, BookMarked, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,6 +113,20 @@ export default function References() {
   const [hasSearched, setHasSearched] = useState(false);
   const [savedPapers, setSavedPapers] = useState([]);
   const [activeTab, setActiveTab]     = useState('search');
+  const [savedPmids, setSavedPmids]   = useState(new Set());
+
+  useEffect(() => {
+    async function loadSaved() {
+      try {
+        const data = await apiClient.references.getSaved();
+        setSavedPapers(data.results || []);
+        setSavedPmids(new Set((data.results || []).map(p => p.pmid)));
+      } catch {
+        // not logged in or error — silent fail
+      }
+    }
+    loadSaved();
+  }, []);
 
   async function handleSearch(e) {
     e?.preventDefault();
@@ -136,16 +151,25 @@ export default function References() {
     }, 50);
   }
 
-  function handleSave(paper) {
-    setSavedPapers(prev => {
-      const exists = prev.find(p => p.pmid === paper.pmid);
-      if (exists) return prev.filter(p => p.pmid !== paper.pmid);
-      return [paper, ...prev];
-    });
+  async function handleSave(paper) {
+    const alreadySaved = savedPmids.has(paper.pmid);
+    try {
+      if (alreadySaved) {
+        await apiClient.references.unsave(paper.pmid);
+        setSavedPapers(prev => prev.filter(p => p.pmid !== paper.pmid));
+        setSavedPmids(prev => { const s = new Set(prev); s.delete(paper.pmid); return s; });
+      } else {
+        await apiClient.references.save(paper);
+        setSavedPapers(prev => [paper, ...prev]);
+        setSavedPmids(prev => new Set([...prev, paper.pmid]));
+      }
+    } catch {
+      // silent fail
+    }
   }
 
   function isSaved(pmid) {
-    return savedPapers.some(p => p.pmid === pmid);
+    return savedPmids.has(pmid);
   }
 
   return (

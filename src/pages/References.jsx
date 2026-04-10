@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as apiClient from '@/api/client';
 import { Search, BookOpen, ExternalLink, Bookmark, BookMarked, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -113,6 +113,16 @@ export default function References() {
   const [activeTab, setActiveTab]     = useState('search');
   const [savedPmids, setSavedPmids]   = useState(new Set());
 
+  // ── Pagination state ───────────────────────────────────
+  const [page, setPage]           = useState(1);
+  const [hasMore, setHasMore]     = useState(false);
+  const [total, setTotal]         = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loaderRef = useRef(null);
+
+  // Keep a ref to the current query so loadMore always uses the latest value
+  const activeQuery = useRef('');
+
   // ── Zotero state ──────────────────────────────────────
   const [zoteroConnected, setZoteroConnected] = useState(false);
   const [zoteroLoading, setZoteroLoading]     = useState(false);
@@ -155,6 +165,36 @@ export default function References() {
     checkZotero();
   }, []);
 
+  // ── Load more (called by IntersectionObserver) ────────
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      const data = await apiClient.references.search(activeQuery.current, nextPage, 10);
+      setResults(prev => [...prev, ...(data.results || [])]);
+      setTotal(data.total || 0);
+      setHasMore(data.has_more || false);
+      setPage(nextPage);
+    } catch {
+      // silent fail on load-more
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, page]);
+
+  // ── IntersectionObserver — watches sentinel div ────────
+  useEffect(() => {
+    const sentinel = loaderRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore(); },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMore]);
+
   async function handleZoteroExport() {
     setZoteroLoading(true);
     setZoteroMessage('');
@@ -195,12 +235,21 @@ export default function References() {
   async function handleSearch(e) {
     e?.preventDefault();
     if (!query.trim()) return;
+
+    activeQuery.current = query;
     setLoading(true);
     setError('');
     setHasSearched(true);
+    setResults([]);
+    setPage(1);
+    setHasMore(false);
+    setTotal(0);
+
     try {
-      const data = await apiClient.references.search(query);
+      const data = await apiClient.references.search(query, 1, 15);
       setResults(data.results || []);
+      setTotal(data.total || 0);
+      setHasMore(data.has_more || false);
     } catch {
       setError('Search failed. Please check your connection and try again.');
     } finally {
@@ -338,15 +387,18 @@ export default function References() {
 
             {loading && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
+                {[1, 2, 3, 4, 6, 8].map(i => <SkeletonCard key={i} />)}
               </div>
             )}
 
             {!loading && results.length > 0 && (
               <>
                 <p className="text-sm text-slate-500 mb-4">
-                  {results.length} results for <span className="font-medium text-slate-700">"{query}"</span>
+                  Showing {results.length} of{' '}
+                  <span className="font-medium text-slate-700">{total.toLocaleString()}</span> results for{' '}
+                  <span className="font-medium text-slate-700">"{activeQuery.current}"</span>
                 </p>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {results.map(paper => (
                     <ReferenceCard
@@ -356,6 +408,21 @@ export default function References() {
                       saved={isSaved(paper.pmid)}
                     />
                   ))}
+                </div>
+
+                {/* Sentinel div — IntersectionObserver target */}
+                <div ref={loaderRef} className="py-8 flex justify-center">
+                  {loadingMore && (
+                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <div className="w-4 h-4 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+                      Loading more results…
+                    </div>
+                  )}
+                  {!hasMore && !loadingMore && (
+                    <p className="text-xs text-slate-400">
+                      All {total.toLocaleString()} results loaded
+                    </p>
+                  )}
                 </div>
               </>
             )}

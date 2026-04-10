@@ -55,6 +55,7 @@ import CaseDetails from './pages/CaseDetails';
 import Events from './pages/Events';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import References from './pages/References';
 import __Layout from './Layout.jsx';
 
 
@@ -67,6 +68,7 @@ export const PAGES = {
     "Events": Events,
     "Profile": Profile,
     "Admin": Admin,
+    "References": References,
 }
 
 export const pagesConfig = {

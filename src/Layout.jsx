@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import * as apiClient from '@/api/client';
 import { 
   Home, MessageCircle, Users, Briefcase, Calendar, User, Menu, X,
-  Stethoscope
+  Stethoscope,BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ const navItems = [
   { name: 'Chats', icon: MessageCircle, page: 'Chats' },
   { name: 'Network', icon: Users, page: 'Network' },
   { name: 'Cases', icon: Briefcase, page: 'Cases' },
+  { name: 'References', icon: BookOpen, page: 'References' },
   { name: 'Events', icon: Calendar, page: 'Events' },
   { name: 'Profile', icon: User, page: 'Profile' },
 ];
@@ -59,7 +60,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Bottom Nav ONLY for Chats */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
         <div className="flex items-center justify-around py-2">
-          {navItems.slice(0, 5).map(item => (
+          {navItems.map(item => (
             <Link
               key={item.name}
               to={createPageUrl(item.page)}
@@ -191,7 +192,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Mobile Bottom Nav */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-bottom">
         <div className="flex items-center justify-around py-2">
-          {navItems.slice(0, 5).map(item => (
+          {navItems.map(item => (
             <Link
               key={item.name}
               to={createPageUrl(item.page)}

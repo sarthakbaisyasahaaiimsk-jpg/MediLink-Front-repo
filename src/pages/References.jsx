@@ -127,6 +127,10 @@ export default function References() {
   const [zoteroConnected, setZoteroConnected] = useState(false);
   const [zoteroLoading, setZoteroLoading]     = useState(false);
   const [zoteroMessage, setZoteroMessage]     = useState('');
+  const [collections, setCollections]         = useState([]);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [selectedCollection, setSelectedCollection]   = useState(null);
+  const [collectionsLoading, setCollectionsLoading]   = useState(false);
 
   useEffect(() => {
     async function loadSaved() {
@@ -196,30 +200,44 @@ export default function References() {
   }, [loadMore]);
 
   async function handleZoteroExport() {
-    setZoteroLoading(true);
-    setZoteroMessage('');
-    try {
-      if (!zoteroConnected) {
-        const res = await apiClient.zotero.connect();
-        if (res.auth_url) {
-          window.location.href = res.auth_url;
-          return;
-        }
-        if (res.connected) {
-          setZoteroConnected(true);
-        }
-      } else {
-        const res = await apiClient.zotero.push();
-        setZoteroMessage(res.message || 'References pushed to Zotero!');
-        setTimeout(() => setZoteroMessage(''), 4000);
-      }
-    } catch (err) {
-      setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
-      setTimeout(() => setZoteroMessage(''), 5000);
-    } finally {
-      setZoteroLoading(false);
+  setZoteroLoading(true);
+  setZoteroMessage('');
+  try {
+    if (!zoteroConnected) {
+      const res = await apiClient.zotero.connect();
+      if (res.auth_url) { window.location.href = res.auth_url; return; }
+      if (res.connected) setZoteroConnected(true);
+    } else {
+      // Fetch collections first, then show modal
+      setCollectionsLoading(true);
+      const res = await apiClient.zotero.collections();
+      setCollections(res.collections || []);
+      setCollectionsLoading(false);
+      setShowCollectionModal(true);
     }
+  } catch (err) {
+    setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
+    setTimeout(() => setZoteroMessage(''), 5000);
+  } finally {
+    setZoteroLoading(false);
   }
+}
+
+async function handleConfirmExport() {
+  setShowCollectionModal(false);
+  setZoteroLoading(true);
+  try {
+    const res = await apiClient.zotero.push({ collection_key: selectedCollection || undefined });
+    setZoteroMessage(res.message || 'References pushed to Zotero!');
+    setTimeout(() => setZoteroMessage(''), 4000);
+  } catch (err) {
+    setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
+    setTimeout(() => setZoteroMessage(''), 5000);
+  } finally {
+    setZoteroLoading(false);
+    setSelectedCollection(null);
+  }
+}
 
   async function handleZoteroDisconnect() {
     try {
@@ -516,7 +534,62 @@ export default function References() {
             )}
           </>
         )}
+{showCollectionModal && (
+  <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+      <h2 className="text-base font-semibold text-slate-800 mb-1">Export to Zotero</h2>
+      <p className="text-sm text-slate-500 mb-4">Choose a collection or save to My Library root</p>
 
+      <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-4">
+        <button
+          onClick={() => setSelectedCollection(null)}
+          className={`text-left px-3 py-2 rounded-lg text-sm transition-all border ${
+            selectedCollection === null
+              ? 'border-teal-400 bg-teal-50 text-teal-700'
+              : 'border-slate-100 hover:border-teal-200 text-slate-600'
+          }`}
+        >
+          My Library (root)
+        </button>
+
+        {collectionsLoading ? (
+          <p className="text-xs text-slate-400 px-3 py-2">Loading collections…</p>
+        ) : collections.length === 0 ? (
+          <p className="text-xs text-slate-400 px-3 py-2">No collections found</p>
+        ) : (
+          collections.map(c => (
+            <button
+              key={c.key}
+              onClick={() => setSelectedCollection(c.key)}
+              className={`text-left px-3 py-2 rounded-lg text-sm transition-all border ${
+                selectedCollection === c.key
+                  ? 'border-teal-400 bg-teal-50 text-teal-700'
+                  : 'border-slate-100 hover:border-teal-200 text-slate-600'
+              }`}
+            >
+              {c.name}
+            </button>
+          ))
+        )}
+      </div>
+
+      <div className="flex gap-2 justify-end">
+        <button
+          onClick={() => setShowCollectionModal(false)}
+          className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          Cancel
+        </button>
+        <Button
+          onClick={handleConfirmExport}
+          className="bg-teal-500 hover:bg-teal-600 text-sm"
+        >
+          Export
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );

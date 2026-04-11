@@ -306,15 +306,16 @@ export const medicalEvent = {
       body: JSON.stringify(data),
     }),
 };
+
 // ========================
 // REFERENCES
 // ========================
 export const references = {
   search: async (query, offset = 0, limit = 20) =>
-  apiCall("/references/search", {
-    method: "POST",
-    body: JSON.stringify({ query, offset, limit }),
-  }),
+    apiCall("/references/search", {
+      method: "POST",
+      body: JSON.stringify({ query, offset, limit }),
+    }),
 
   save: async (paper) =>
     apiCall("/references/save", {
@@ -330,6 +331,7 @@ export const references = {
   getSaved: async () =>
     apiCall("/references/saved"),
 };
+
 // ========================
 // ZOTERO
 // ========================
@@ -340,10 +342,13 @@ export const zotero = {
   connect: async () =>
     apiCall("/zotero/connect"),
 
-  push: async (pmids) =>
+  collections: async () =>
+    apiCall("/zotero/collections"),
+
+  push: async (data = {}) =>
     apiCall("/zotero/push", {
       method: "POST",
-      body: JSON.stringify(pmids ? { pmids } : {}),
+      body: JSON.stringify(data),
     }),
 
   disconnect: async () =>
@@ -351,6 +356,7 @@ export const zotero = {
       method: "DELETE",
     }),
 };
+
 // ========================
 // EXPORT GROUP
 // ========================

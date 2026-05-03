@@ -356,7 +356,37 @@ export const zotero = {
       method: "DELETE",
     }),
 };
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+});
+
+// Replace the entire admin export block with this:
+export const admin = {
+  getAnalytics:       () => apiCall("/admin/analytics"),
+  getUsers:           () => apiCall("/admin/users"),
+  deleteUser:        id => apiCall(`/admin/users/${id}`,              { method: "DELETE" }),
+  verifyUser:        id => apiCall(`/admin/users/${id}/verify`,       { method: "PATCH" }),
+  toggleAdmin:       id => apiCall(`/admin/users/${id}/toggle-admin`, { method: "PATCH" }),
+
+  getCases:           () => apiCall("/admin/cases"),
+  deleteCase:        id => apiCall(`/admin/cases/${id}`,              { method: "DELETE" }),
+  updateCaseStatus: (id, status) => apiCall(`/admin/cases/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+
+  getEvents:          () => apiCall("/admin/events"),
+  deleteEvent:       id => apiCall(`/admin/events/${id}`,             { method: "DELETE" }),
+
+  getConversations:   () => apiCall("/admin/conversations"),
+  deleteConversation:id => apiCall(`/admin/conversations/${id}`,      { method: "DELETE" }),
+
+  getProfiles:        () => apiCall("/admin/profiles"),
+  deleteProfile:     id => apiCall(`/admin/profiles/${id}`,           { method: "DELETE" }),
+
+  getReferences:      () => apiCall("/admin/references"),
+  deleteReference:   id => apiCall(`/admin/references/${id}`,         { method: "DELETE" }),
+};
 // ========================
 // EXPORT GROUP
 // ========================

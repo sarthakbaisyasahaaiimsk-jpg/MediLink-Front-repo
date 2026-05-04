@@ -387,6 +387,12 @@ export const admin = {
   getReferences:      () => apiCall("/admin/references"),
   deleteReference:   id => apiCall(`/admin/references/${id}`,         { method: "DELETE" }),
 };
+export const drugs = {
+  search: (q, limit = 10) =>
+    apiCall(`/drugs/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  detail: (name = '', rxcui = '') =>
+    apiCall(`/drugs/detail?name=${encodeURIComponent(name)}&rxcui=${encodeURIComponent(rxcui)}`),
+};
 // ========================
 // EXPORT GROUP
 // ========================

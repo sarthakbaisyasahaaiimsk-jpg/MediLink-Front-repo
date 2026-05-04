@@ -11,6 +11,7 @@ import Login from '@/pages/Login';
 import Admin from '@/pages/Admin';
 import React from 'react';
 import AuthCallback from '@/pages/AuthCallback.jsx';
+import Drugs from '@/pages/Drugs'
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -73,6 +74,7 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/drugs" element={<Drugs />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

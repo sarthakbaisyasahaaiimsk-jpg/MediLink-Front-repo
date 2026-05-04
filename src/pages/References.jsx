@@ -114,23 +114,26 @@ export default function References() {
   const [savedPmids, setSavedPmids]   = useState(new Set());
 
   // ── Pagination state ───────────────────────────────────
-  const [page, setPage]           = useState(1);
-  const [hasMore, setHasMore]     = useState(false);
-  const [total, setTotal]         = useState(0);
+  const [page, setPage]               = useState(1);
+  const [hasMore, setHasMore]         = useState(false);
+  const [total, setTotal]             = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const loaderRef = useRef(null);
-
-  // Keep a ref to the current query so loadMore always uses the latest value
-  const activeQuery = useRef('');
+  const loaderRef                     = useRef(null);
+  const activeQuery                   = useRef('');
 
   // ── Zotero state ──────────────────────────────────────
-  const [zoteroConnected, setZoteroConnected] = useState(false);
-  const [zoteroLoading, setZoteroLoading]     = useState(false);
-  const [zoteroMessage, setZoteroMessage]     = useState('');
-  const [collections, setCollections]         = useState([]);
-  const [showCollectionModal, setShowCollectionModal] = useState(false);
-  const [selectedCollection, setSelectedCollection]   = useState(null);
-  const [collectionsLoading, setCollectionsLoading]   = useState(false);
+  const [zoteroConnected, setZoteroConnected]             = useState(false);
+  const [zoteroLoading, setZoteroLoading]                 = useState(false);
+  const [zoteroMessage, setZoteroMessage]                 = useState('');
+  const [collections, setCollections]                     = useState([]);
+  const [showCollectionModal, setShowCollectionModal]     = useState(false);
+  const [selectedCollection, setSelectedCollection]       = useState(null);
+  const [collectionsLoading, setCollectionsLoading]       = useState(false);
+
+  // ── New collection state ───────────────────────────────
+  const [showNewCollectionInput, setShowNewCollectionInput] = useState(false);
+  const [newCollectionName, setNewCollectionName]           = useState('');
+  const [creatingCollection, setCreatingCollection]         = useState(false);
 
   useEffect(() => {
     async function loadSaved() {
@@ -139,7 +142,7 @@ export default function References() {
         setSavedPapers(data.results || []);
         setSavedPmids(new Set((data.results || []).map(p => p.pmid)));
       } catch {
-        // not logged in or error — silent fail
+        // silent fail
       }
     }
 
@@ -152,7 +155,6 @@ export default function References() {
       }
     }
 
-    // Handle redirect back from Zotero OAuth
     const params = new URLSearchParams(window.location.search);
     if (params.get('zotero') === 'connected') {
       setZoteroConnected(true);
@@ -169,7 +171,7 @@ export default function References() {
     checkZotero();
   }, []);
 
-  // ── Load more (called by IntersectionObserver) ────────
+  // ── Load more ─────────────────────────────────────────
   const loadMore = useCallback(async () => {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
@@ -181,13 +183,12 @@ export default function References() {
       setHasMore(data.has_more || false);
       setPage(nextPage);
     } catch {
-      // silent fail on load-more
+      // silent fail
     } finally {
       setLoadingMore(false);
     }
   }, [hasMore, loadingMore, page]);
 
-  // ── IntersectionObserver — watches sentinel div ────────
   useEffect(() => {
     const sentinel = loaderRef.current;
     if (!sentinel) return;
@@ -199,45 +200,64 @@ export default function References() {
     return () => observer.disconnect();
   }, [loadMore]);
 
+  // ── Zotero export ─────────────────────────────────────
   async function handleZoteroExport() {
-  setZoteroLoading(true);
-  setZoteroMessage('');
-  try {
-    if (!zoteroConnected) {
-      const res = await apiClient.zotero.connect();
-      if (res.auth_url) { window.location.href = res.auth_url; return; }
-      if (res.connected) setZoteroConnected(true);
-    } else {
-      // Fetch collections first, then show modal
-      setCollectionsLoading(true);
-      const res = await apiClient.zotero.collections();
-      setCollections(res.collections || []);
-      setCollectionsLoading(false);
-      setShowCollectionModal(true);
+    setZoteroLoading(true);
+    setZoteroMessage('');
+    try {
+      if (!zoteroConnected) {
+        const res = await apiClient.zotero.connect();
+        if (res.auth_url) { window.location.href = res.auth_url; return; }
+        if (res.connected) setZoteroConnected(true);
+      } else {
+        setCollectionsLoading(true);
+        const res = await apiClient.zotero.collections();
+        setCollections(res.collections || []);
+        setCollectionsLoading(false);
+        setShowCollectionModal(true);
+      }
+    } catch (err) {
+      setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
+      setTimeout(() => setZoteroMessage(''), 5000);
+    } finally {
+      setZoteroLoading(false);
     }
-  } catch (err) {
-    setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
-    setTimeout(() => setZoteroMessage(''), 5000);
-  } finally {
-    setZoteroLoading(false);
   }
-}
 
-async function handleConfirmExport() {
-  setShowCollectionModal(false);
-  setZoteroLoading(true);
-  try {
-    const res = await apiClient.zotero.push({ collection_key: selectedCollection || undefined });
-    setZoteroMessage(res.message || 'References pushed to Zotero!');
-    setTimeout(() => setZoteroMessage(''), 4000);
-  } catch (err) {
-    setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
-    setTimeout(() => setZoteroMessage(''), 5000);
-  } finally {
-    setZoteroLoading(false);
-    setSelectedCollection(null);
+  async function handleConfirmExport() {
+    setShowCollectionModal(false);
+    setZoteroLoading(true);
+    try {
+      const res = await apiClient.zotero.push({ collection_key: selectedCollection || undefined });
+      setZoteroMessage(res.message || 'References pushed to Zotero!');
+      setTimeout(() => setZoteroMessage(''), 4000);
+    } catch (err) {
+      setZoteroMessage('Zotero error: ' + (err.message || 'Something went wrong'));
+      setTimeout(() => setZoteroMessage(''), 5000);
+    } finally {
+      setZoteroLoading(false);
+      setSelectedCollection(null);
+    }
   }
-}
+
+  // ── Create new Zotero collection ──────────────────────
+  async function handleCreateCollection() {
+    if (!newCollectionName.trim()) return;
+    setCreatingCollection(true);
+    try {
+      const created = await apiClient.zotero.createCollection(newCollectionName.trim());
+      const newCol = { key: created.key, name: newCollectionName.trim() };
+      setCollections(prev => [...prev, newCol]);
+      setSelectedCollection(created.key);
+      setNewCollectionName('');
+      setShowNewCollectionInput(false);
+    } catch (err) {
+      setZoteroMessage('Failed to create collection: ' + (err.message || 'Unknown error'));
+      setTimeout(() => setZoteroMessage(''), 4000);
+    } finally {
+      setCreatingCollection(false);
+    }
+  }
 
   async function handleZoteroDisconnect() {
     try {
@@ -428,7 +448,6 @@ async function handleConfirmExport() {
                   ))}
                 </div>
 
-                {/* Sentinel div — IntersectionObserver target */}
                 <div ref={loaderRef} className="py-8 flex justify-center">
                   {loadingMore && (
                     <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -477,7 +496,6 @@ async function handleConfirmExport() {
               </div>
             ) : (
               <>
-                {/* Zotero toolbar */}
                 <div className="flex items-center gap-4 mb-4 flex-wrap">
                   <p className="text-sm text-slate-500">
                     {savedPapers.length} saved {savedPapers.length === 1 ? 'paper' : 'papers'}
@@ -519,7 +537,6 @@ async function handleConfirmExport() {
                   )}
                 </div>
 
-                {/* Paper grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {savedPapers.map(paper => (
                     <ReferenceCard
@@ -534,62 +551,104 @@ async function handleConfirmExport() {
             )}
           </>
         )}
-{showCollectionModal && (
-  <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-      <h2 className="text-base font-semibold text-slate-800 mb-1">Export to Zotero</h2>
-      <p className="text-sm text-slate-500 mb-4">Choose a collection or save to My Library root</p>
 
-      <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-4">
-        <button
-          onClick={() => setSelectedCollection(null)}
-          className={`text-left px-3 py-2 rounded-lg text-sm transition-all border ${
-            selectedCollection === null
-              ? 'border-teal-400 bg-teal-50 text-teal-700'
-              : 'border-slate-100 hover:border-teal-200 text-slate-600'
-          }`}
-        >
-          My Library (root)
-        </button>
+        {/* ── Collection modal ── */}
+        {showCollectionModal && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+              <h2 className="text-base font-semibold text-slate-800 mb-1">Export to Zotero</h2>
+              <p className="text-sm text-slate-500 mb-4">Choose a collection or save to My Library root</p>
 
-        {collectionsLoading ? (
-          <p className="text-xs text-slate-400 px-3 py-2">Loading collections…</p>
-        ) : collections.length === 0 ? (
-          <p className="text-xs text-slate-400 px-3 py-2">No collections found</p>
-        ) : (
-          collections.map(c => (
-            <button
-              key={c.key}
-              onClick={() => setSelectedCollection(c.key)}
-              className={`text-left px-3 py-2 rounded-lg text-sm transition-all border ${
-                selectedCollection === c.key
-                  ? 'border-teal-400 bg-teal-50 text-teal-700'
-                  : 'border-slate-100 hover:border-teal-200 text-slate-600'
-              }`}
-            >
-              {c.name}
-            </button>
-          ))
+              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-3">
+                <button
+                  onClick={() => setSelectedCollection(null)}
+                  className={`text-left px-3 py-2 rounded-lg text-sm transition-all border ${
+                    selectedCollection === null
+                      ? 'border-teal-400 bg-teal-50 text-teal-700'
+                      : 'border-slate-100 hover:border-teal-200 text-slate-600'
+                  }`}
+                >
+                  My Library (root)
+                </button>
+
+                {collectionsLoading ? (
+                  <p className="text-xs text-slate-400 px-3 py-2">Loading collections…</p>
+                ) : collections.length === 0 ? (
+                  <p className="text-xs text-slate-400 px-3 py-2">No collections found</p>
+                ) : (
+                  collections.map(c => (
+                    <button
+                      key={c.key}
+                      onClick={() => setSelectedCollection(c.key)}
+                      className={`text-left px-3 py-2 rounded-lg text-sm transition-all border ${
+                        selectedCollection === c.key
+                          ? 'border-teal-400 bg-teal-50 text-teal-700'
+                          : 'border-slate-100 hover:border-teal-200 text-slate-600'
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {/* New collection input */}
+              {showNewCollectionInput ? (
+                <div className="flex gap-2 mb-3">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newCollectionName}
+                    onChange={e => setNewCollectionName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCreateCollection()}
+                    placeholder="Collection name..."
+                    className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-400"
+                  />
+                  <Button
+                    onClick={handleCreateCollection}
+                    disabled={creatingCollection || !newCollectionName.trim()}
+                    className="bg-teal-500 hover:bg-teal-600 text-sm px-3"
+                  >
+                    {creatingCollection ? '…' : 'Create'}
+                  </Button>
+                  <button
+                    onClick={() => { setShowNewCollectionInput(false); setNewCollectionName(''); }}
+                    className="text-xs text-slate-400 hover:text-slate-600 px-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowNewCollectionInput(true)}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm border border-dashed border-slate-200 text-slate-400 hover:border-teal-300 hover:text-teal-600 transition-all mb-3"
+                >
+                  + New collection
+                </button>
+              )}
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowCollectionModal(false);
+                    setShowNewCollectionInput(false);
+                    setNewCollectionName('');
+                  }}
+                  className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <Button
+                  onClick={handleConfirmExport}
+                  className="bg-teal-500 hover:bg-teal-600 text-sm"
+                >
+                  Export
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
-      </div>
 
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={() => setShowCollectionModal(false)}
-          className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
-        >
-          Cancel
-        </button>
-        <Button
-          onClick={handleConfirmExport}
-          className="bg-teal-500 hover:bg-teal-600 text-sm"
-        >
-          Export
-        </Button>
-      </div>
-    </div>
-  </div>
-)}
       </div>
     </div>
   );

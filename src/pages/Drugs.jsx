@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import * as apiClient from '@/api/client';
+import Layout from "@/components/Layout";
 
 // ── Section component ─────────────────────────────────────
 function Section({ icon: Icon, title, content, color = "teal", defaultOpen = false }) {
@@ -248,6 +249,7 @@ export default function Drugs() {
   };
 
   return (
+  <Layout currentPageName="Drugs">
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
 
       {/* Header */}
@@ -399,6 +401,7 @@ export default function Drugs() {
           </div>
         </div>
       </div>
-    </div>
-  );
+        </div>
+  </Layout>
+);
 }

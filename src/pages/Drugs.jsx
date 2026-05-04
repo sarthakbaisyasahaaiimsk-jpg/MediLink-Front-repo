@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import * as apiClient from '@/api/client';
-import Layout from "@/src/Layout";
+import Layout from "@/Layout";
 
 // ── Section component ─────────────────────────────────────
 function Section({ icon: Icon, title, content, color = "teal", defaultOpen = false }) {

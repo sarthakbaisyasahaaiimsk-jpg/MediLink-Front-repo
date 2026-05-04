@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import * as apiClient from '@/api/client';
 import { 
   Home, MessageCircle, Users, Briefcase, Calendar, User, Menu, X,
-  Stethoscope,BookOpen
+  Stethoscope,BookOpen,Pill
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ const navItems = [
   { name: 'Chats', icon: MessageCircle, page: 'Chats' },
   { name: 'Network', icon: Users, page: 'Network' },
   { name: 'Cases', icon: Briefcase, page: 'Cases' },
+  {name: 'Drugs', icon: Pill, page: 'Drugs' }, 
   { name: 'References', icon: BookOpen, page: 'References' },
   { name: 'Events', icon: Calendar, page: 'Events' },
   { name: 'Profile', icon: User, page: 'Profile' },

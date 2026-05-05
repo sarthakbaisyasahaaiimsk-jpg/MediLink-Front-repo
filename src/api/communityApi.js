@@ -1,4 +1,4 @@
-const BASE = "/api/community";
+const BASE = "https://medilink-back-repo.onrender.com/api/community";
 
 // Forums
 export const getForums = () =>

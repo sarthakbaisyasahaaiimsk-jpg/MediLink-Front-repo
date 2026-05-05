@@ -64,7 +64,7 @@ export const PAGES = {
     "Home": Home,
     "Chats": Chats,
     "Network": Network,
-    "Forum": ForumPage
+    "Forum": ForumPage,
     "Cases": Cases,
     "CaseDetails": CaseDetails,
     "Events": Events,

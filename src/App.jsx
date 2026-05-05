@@ -12,6 +12,7 @@ import Admin from '@/pages/Admin';
 import React from 'react';
 import AuthCallback from '@/pages/AuthCallback.jsx';
 import Drugs from '@/pages/Drugs'
+import ThreadPage from "./pages/ThreadPage";
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];

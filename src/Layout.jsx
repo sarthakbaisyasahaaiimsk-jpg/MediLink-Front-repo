@@ -14,6 +14,7 @@ const navItems = [
   { name: 'Home', icon: Home, page: 'Home' },
   { name: 'Chats', icon: MessageCircle, page: 'Chats' },
   { name: 'Network', icon: Users, page: 'Network' },
+  { name: 'Forum', icon: MessageSquare, page: 'Forum' },
   { name: 'Cases', icon: Briefcase, page: 'Cases' },
   {name: 'Drugs', icon: Pill, page: 'Drugs' }, 
   { name: 'References', icon: BookOpen, page: 'References' },

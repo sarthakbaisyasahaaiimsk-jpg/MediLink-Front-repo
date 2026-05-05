@@ -50,6 +50,7 @@
 import Home from './pages/Home';
 import Chats from './pages/Chats';
 import Network from './pages/Network';
+import ForumPage from './pages/ForumPage';
 import Cases from './pages/Cases';
 import CaseDetails from './pages/CaseDetails';
 import Events from './pages/Events';
@@ -63,6 +64,7 @@ export const PAGES = {
     "Home": Home,
     "Chats": Chats,
     "Network": Network,
+    "Forum": ForumPage
     "Cases": Cases,
     "CaseDetails": CaseDetails,
     "Events": Events,

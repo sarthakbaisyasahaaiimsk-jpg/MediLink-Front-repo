@@ -76,7 +76,6 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/drugs" element={<Drugs />} />
-      <Route path="/thread/:id" element={<ThreadPage />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

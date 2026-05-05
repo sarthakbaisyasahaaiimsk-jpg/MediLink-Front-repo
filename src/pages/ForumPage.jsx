@@ -23,12 +23,15 @@ export default function ForumPage() {
 
   // ─── Load Forums ─────────────────────────────
   useEffect(() => {
-    communityAPI.getForums().then((data) => {
-      setForums(data);
-      if (data.length > 0) setSelectedForumId(data[0].id);
-    });
-  }, []);
+  communityAPI.getForums().then((data) => {
+    const forums = data.forums || [];
+    setForums(forums);
 
+    if (forums.length > 0) {
+      setSelectedForumId(forums[0].id);
+    }
+  });
+}, []);
   // ─── Load Threads (Paginated) ────────────────
   const {
     data,
@@ -40,7 +43,7 @@ export default function ForumPage() {
   });
 
   const threads = data?.threads || [];
-  const totalPages = data?.total_pages || 1;
+ const totalPages = data?.pages || 1;;
 
   // ─── Create Forum ────────────────────────────
   const handleCreateForum = async () => {

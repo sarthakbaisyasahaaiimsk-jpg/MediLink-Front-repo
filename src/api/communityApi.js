@@ -1,37 +1,93 @@
-const BASE = "https://medilink-back-repo.onrender.com/api/community";
+const BASE = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api/community`
+  : "https://medilink-back-repo.onrender.com/api/community";
 
-// Forums
-export const getForums = () =>
-  fetch(`${BASE}/forums`).then(res => res.json());
+/**
+ * Safe JSON handler
+ * prevents crashes when backend returns HTML/errors
+ */
+const safeJson = async (res) => {
+  const contentType = res.headers.get("content-type");
 
-export const createForum = (data) =>
-  fetch(`${BASE}/forums`, {
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`API Error ${res.status}: ${text}`);
+  }
+
+  if (!contentType || !contentType.includes("application/json")) {
+    const text = await res.text();
+    throw new Error(`Expected JSON but got: ${text.slice(0, 100)}`);
+  }
+
+  return res.json();
+};
+
+/* =========================
+   FORUMS
+========================= */
+
+export const getForums = async () => {
+  const res = await fetch(`${BASE}/forums`);
+  return safeJson(res);
+};
+
+export const createForum = async (data) => {
+  const res = await fetch(`${BASE}/forums`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
-  }).then(res => res.json());
+  });
 
-// Threads
-export const getThreads = (forumId, page = 1) =>
-  fetch(`${BASE}/forums/${forumId}/threads?page=${page}`)
-    .then(res => res.json());
+  return safeJson(res);
+};
 
-export const createThread = (forumId, data) =>
-  fetch(`${BASE}/forums/${forumId}/threads`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  }).then(res => res.json());
+/* =========================
+   THREADS
+========================= */
 
-// Single thread
-export const getThread = (threadId) =>
-  fetch(`${BASE}/threads/${threadId}`)
-    .then(res => res.json());
+export const getThreads = async (forumId, page = 1) => {
+  const res = await fetch(
+    `${BASE}/forums/${forumId}/threads?page=${page}`
+  );
 
-// Comments
-export const addComment = (threadId, data) =>
-  fetch(`${BASE}/threads/${threadId}/comments`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  }).then(res => res.json());
+  return safeJson(res);
+};
+
+export const createThread = async (forumId, data) => {
+  const res = await fetch(
+    `${BASE}/forums/${forumId}/threads`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }
+  );
+
+  return safeJson(res);
+};
+
+/* =========================
+   SINGLE THREAD
+========================= */
+
+export const getThread = async (threadId) => {
+  const res = await fetch(`${BASE}/threads/${threadId}`);
+  return safeJson(res);
+};
+
+/* =========================
+   COMMENTS
+========================= */
+
+export const addComment = async (threadId, data) => {
+  const res = await fetch(
+    `${BASE}/threads/${threadId}/comments`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }
+  );
+
+  return safeJson(res);
+};

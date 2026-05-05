@@ -77,11 +77,3 @@ export const pagesConfig = {
     Layout: __Layout,
 };
 
-import ThreadPage from "@/pages/ThreadPage";
-
-export const pagesConfig = {
-  Pages: {
-    ...
-    "thread/:id": ThreadPage,
-  }
-};

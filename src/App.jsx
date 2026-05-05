@@ -63,6 +63,7 @@ const AuthenticatedApp = () => {
       />
       <Route path="/login" element={<Login />} />
       <Route path="/admin" element={<Admin />} />
+      <Route path="/thread/:id" element={<ThreadPage />} />
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}

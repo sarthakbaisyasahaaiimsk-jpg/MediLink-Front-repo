@@ -1,4 +1,4 @@
-const BASE = "/api/forum";
+const BASE = "/api/community";
 
 export const getCases = (page = 1) =>
   fetch(`${BASE}/cases?page=${page}`).then(res => res.json());

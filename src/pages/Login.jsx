@@ -4,6 +4,34 @@ import { useAuth } from '@/lib/AuthContext.jsx';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getOrCreateKeyPair, publicKeyToBase64 } from '@/utils/crypto';
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || 'https://medilink-back-repo-1.onrender.com';
+
+// Registers this doctor's public key with the backend so others can encrypt messages to them.
+// Called silently after every login — safe to call multiple times (upsert).
+async function registerE2EKey(userEmail) {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token || !userEmail) return;
+
+    const { publicKeyRaw } = await getOrCreateKeyPair();
+    const myPubKeyB64 = publicKeyToBase64(publicKeyRaw);
+
+    await fetch(`${API_BASE}/api/keys/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ user_id: userEmail, public_key: myPubKeyB64 }),
+    });
+  } catch (err) {
+    // Non-fatal — chat still works, just without E2E until next login
+    console.warn('E2E key registration failed:', err);
+  }
+}
 
 export default function Login() {
   const [mode, setMode] = useState('login');
@@ -16,7 +44,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // ✅ Only use doLogin and doRegister — they already handle saveToken + fetchUser internally
   const { doLogin, doRegister } = useAuth();
   const navigate = useNavigate();
 
@@ -31,7 +58,8 @@ export default function Login() {
         setError(result.error);
         return;
       }
-      // ✅ Navigate to '/' which exists in App.jsx (was '/dashboard' which doesn't exist)
+      // Register E2E key silently after successful login
+      await registerE2EKey(email);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -57,7 +85,8 @@ export default function Login() {
         setError(result.error);
         return;
       }
-      // ✅ Navigate to '/' which exists in App.jsx
+      // Register E2E key silently after successful registration
+      await registerE2EKey(email);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -66,12 +95,11 @@ export default function Login() {
 
   // Google login — redirects to backend which then redirects to /auth/callback?token=...
   const handleGoogleLogin = () => {
-  const BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "https://medilink-back-repo-1.onrender.com";
-
-  window.location.href = `${BASE_URL}/api/auth/google/login`;
-};
+    const BASE_URL =
+      import.meta.env.VITE_API_BASE_URL ||
+      'https://medilink-back-repo-1.onrender.com';
+    window.location.href = `${BASE_URL}/api/auth/google/login`;
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">

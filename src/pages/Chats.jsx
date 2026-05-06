@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as apiClient from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, MoreVertical, Search, Phone, Video, MessageCircle, ShieldCheck, ShieldOff } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Phone, Video, MessageCircle, ShieldCheck, ShieldOff, Users, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,12 +14,133 @@ import { cn } from '@/lib/utils';
 import { useE2EKeys } from '@/hooks/useE2EKeys';
 import { encryptMessage } from '@/utils/crypto';
 
+// ── Create Group Modal ───────────────────────────────────────────────────────
+function CreateGroupModal({ user, onClose, onCreated }) {
+  const [groupName, setGroupName] = useState('');
+  const [memberEmail, setMemberEmail] = useState('');
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const addMember = () => {
+    const email = memberEmail.trim().toLowerCase();
+    if (!email || members.includes(email) || email === user?.email) return;
+    setMembers(prev => [...prev, email]);
+    setMemberEmail('');
+  };
+
+  const removeMember = (email) => {
+    setMembers(prev => prev.filter(m => m !== email));
+  };
+
+  const handleCreate = async () => {
+    if (!groupName.trim()) {
+      toast({ title: 'Group name is required', variant: 'destructive' });
+      return;
+    }
+    if (members.length < 1) {
+      toast({ title: 'Add at least one member', variant: 'destructive' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const participants = [user.email, ...members];
+      const participantNames = participants.map(() => '');
+
+      const group = await apiClient.entities.Conversation.create({
+        is_group: true,
+        group_name: groupName.trim(),
+        participants,
+        participant_names: participantNames,
+        last_message: '',
+        last_message_time: new Date().toISOString(),
+        unread_count: {},
+      });
+
+      toast({ title: `Group "${groupName}" created!` });
+      onCreated(group);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Failed to create group', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-800">New Group Chat</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-slate-700 mb-1 block">Group Name</label>
+          <Input
+            value={groupName}
+            onChange={e => setGroupName(e.target.value)}
+            placeholder="e.g. Cardiology Team"
+            className="bg-slate-50"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-slate-700 mb-1 block">Add Members</label>
+          <div className="flex gap-2">
+            <Input
+              value={memberEmail}
+              onChange={e => setMemberEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addMember()}
+              placeholder="doctor@email.com"
+              className="bg-slate-50 flex-1"
+            />
+            <Button onClick={addMember} size="icon" className="bg-teal-600 hover:bg-teal-700 text-white">
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {members.length > 0 && (
+          <div className="space-y-1">
+            {members.map(email => (
+              <div key={email} className="flex items-center justify-between bg-teal-50 rounded-lg px-3 py-2">
+                <span className="text-sm text-teal-800 truncate">{email}</span>
+                <button onClick={() => removeMember(email)} className="text-teal-500 hover:text-teal-700 ml-2">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+          <Button
+            className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
+            onClick={handleCreate}
+            disabled={loading}
+          >
+            {loading ? 'Creating...' : 'Create Group'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function Chats() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showChatList, setShowChatList] = useState(true);
+  const [showCreateGroup, setShowCreateGroup] = useState(false); // ← NEW
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -38,12 +159,10 @@ export default function Chats() {
   }, []);
 
   // ── E2E Encryption ──────────────────────────────────────────────────────────
-  // Derive the recipient email from the selected conversation
   const recipientEmail = selectedConversation && !selectedConversation.is_group
     ? selectedConversation.participants?.find(p => p !== user?.email) ?? null
     : null;
 
-  // Initialises keypair, registers our public key, fetches theirs, derives shared AES-GCM key
   const { sharedKey, ready: e2eReady } = useE2EKeys(user?.email ?? null, recipientEmail);
   // ────────────────────────────────────────────────────────────────────────────
 
@@ -112,7 +231,6 @@ export default function Chats() {
         throw new Error('Conversation or user not loaded');
       }
 
-      // ── Encrypt content if the shared key is ready ──────────────────────────
       let contentToStore = messageData.content;
       let ivToStore = null;
       let isEncrypted = false;
@@ -127,7 +245,6 @@ export default function Chats() {
           console.error('Encryption failed, sending plaintext as fallback:', err);
         }
       }
-      // ────────────────────────────────────────────────────────────────────────
 
       const message = await apiClient.entities.Message.create({
         conversation_id: selectedConversation.id,
@@ -142,22 +259,18 @@ export default function Chats() {
       });
 
       const participants = selectedConversation.participants || [];
-
       const updatedUnread = { ...(selectedConversation.unread_count || {}) };
-
-       participants.forEach(p => {
+      participants.forEach(p => {
         if (p !== user.email) {
-         updatedUnread[p] = (updatedUnread[p] || 0) + 1;
-     } 
-    });
-      const currentUnread = selectedConversation.unread_count || {};
+          updatedUnread[p] = (updatedUnread[p] || 0) + 1;
+        }
+      });
 
-      // Store a neutral preview so ciphertext never leaks into the sidebar
       const lastMessagePreview = isEncrypted ? '🔒 Encrypted message' : messageData.content.slice(0, 50);
 
       await apiClient.entities.Conversation.update(selectedConversation.id, {
         last_message: lastMessagePreview,
-       last_message_time: new Date().toISOString(),
+        last_message_time: new Date().toISOString(),
         last_message_sender: user.email,
         unread_count: updatedUnread,
       });
@@ -179,12 +292,18 @@ export default function Chats() {
   });
 
   const filteredConversations = conversations.filter(c => {
+    if (c.is_group) {
+      return c.group_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    }
     const otherIndex = c.participants?.findIndex(p => p !== user?.email);
     const otherName = c.participant_names?.[otherIndex] || '';
     return otherName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const getOtherParticipant = (conversation) => {
+  const getConversationDisplay = (conversation) => {
+    if (conversation.is_group) {
+      return { name: conversation.group_name || 'Group', photo: null };
+    }
     const otherIndex = conversation.participants?.findIndex(p => p !== user?.email);
     return {
       name: conversation.participant_names?.[otherIndex] || 'Doctor',
@@ -193,13 +312,26 @@ export default function Chats() {
   };
 
   const other = selectedConversation
-    ? getOtherParticipant(selectedConversation)
+    ? getConversationDisplay(selectedConversation)
     : { name: '', photo: null };
   const initials = other.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div className="h-screen flex bg-slate-100">
-      {/* ── Chat List Sidebar ─────────────────────────────────────────────────── */}
+      {/* ── Create Group Modal ─────────────────────────────────────────────── */}
+      {showCreateGroup && (
+        <CreateGroupModal
+          user={user}
+          onClose={() => setShowCreateGroup(false)}
+          onCreated={(group) => {
+            queryClient.invalidateQueries(['conversations']);
+            setSelectedConversation(group);
+            setShowChatList(false);
+          }}
+        />
+      )}
+
+      {/* ── Chat List Sidebar ─────────────────────────────────────────────── */}
       <div
         className={cn(
           'w-full md:w-96 bg-white border-r border-slate-200 flex flex-col',
@@ -207,9 +339,23 @@ export default function Chats() {
           !showChatList && 'hidden md:flex'
         )}
       >
+        {/* Header with New Group button */}
         <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-teal-600 to-teal-500">
-          <h1 className="text-xl font-bold text-white">Messages</h1>
-          <p className="text-teal-100 text-sm">{profile?.full_name}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-white">Messages</h1>
+              <p className="text-teal-100 text-sm">{profile?.full_name}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowCreateGroup(true)}
+              className="text-white hover:bg-teal-700/50 rounded-full"
+              title="New Group Chat"
+            >
+              <Users className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
 
         <div className="p-3 border-b border-slate-100">
@@ -249,7 +395,7 @@ export default function Chats() {
         </ScrollArea>
       </div>
 
-      {/* ── Chat Area ─────────────────────────────────────────────────────────── */}
+      {/* ── Chat Area ─────────────────────────────────────────────────────── */}
       <div className={cn('flex-1 flex flex-col', showChatList && 'hidden md:flex')}>
         {selectedConversation ? (
           <>
@@ -268,26 +414,33 @@ export default function Chats() {
                 <img src={other.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-semibold text-sm">
-                  {initials}
+                  {selectedConversation.is_group
+                    ? <Users className="w-5 h-5" />
+                    : initials}
                 </div>
               )}
 
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold text-slate-800 truncate">{other.name}</h2>
-                {/* E2E status indicator */}
-                <div className="flex items-center gap-1">
-                  {e2eReady ? (
-                    <>
-                      <ShieldCheck className="w-3 h-3 text-teal-500" />
-                      <p className="text-xs text-teal-600 font-medium">End-to-end encrypted</p>
-                    </>
-                  ) : (
-                    <>
-                      <ShieldOff className="w-3 h-3 text-slate-400" />
-                      <p className="text-xs text-slate-400">Setting up encryption…</p>
-                    </>
-                  )}
-                </div>
+                {selectedConversation.is_group ? (
+                  <p className="text-xs text-slate-400">
+                    {selectedConversation.participants?.length} members
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    {e2eReady ? (
+                      <>
+                        <ShieldCheck className="w-3 h-3 text-teal-500" />
+                        <p className="text-xs text-teal-600 font-medium">End-to-end encrypted</p>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldOff className="w-3 h-3 text-slate-400" />
+                        <p className="text-xs text-slate-400">Setting up encryption…</p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-1">
@@ -320,7 +473,6 @@ export default function Chats() {
                 </div>
               ) : (
                 messages.map((message) => (
-                  // DecryptedMessage handles decryption internally and renders MessageBubble
                   <DecryptedMessage
                     key={message.id}
                     message={message}
@@ -334,18 +486,20 @@ export default function Chats() {
               )}
               <div ref={messagesEndRef} />
             </div>
-          <div className="sticky bottom-16 bg-white border-t p-2 z-40">
-            <ChatInput
-              onSend={(data) => sendMessageMutation.mutate({
-                            ...data,
-                  conversation_id: selectedConversation.id
-              })}
-              disabled={sendMessageMutation.isPending}
-              conversationId={selectedConversation?.id}
-              currentUserId={user?.email}
-              senderName={profile?.full_name || user?.full_name}
-              senderPhoto={profile?.profile_photo}
-            /></div>
+
+            <div className="sticky bottom-16 bg-white border-t p-2 z-40">
+              <ChatInput
+                onSend={(data) => sendMessageMutation.mutate({
+                  ...data,
+                  conversation_id: selectedConversation.id,
+                })}
+                disabled={sendMessageMutation.isPending}
+                conversationId={selectedConversation?.id}
+                currentUserId={user?.email}
+                senderName={profile?.full_name || user?.full_name}
+                senderPhoto={profile?.profile_photo}
+              />
+            </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-slate-50">
@@ -355,6 +509,13 @@ export default function Chats() {
               </div>
               <h2 className="text-xl font-semibold text-slate-700">Your Messages</h2>
               <p className="mt-2">Select a conversation to start chatting</p>
+              <Button
+                className="mt-4 bg-teal-600 hover:bg-teal-700 text-white gap-2"
+                onClick={() => setShowCreateGroup(true)}
+              >
+                <Users className="w-4 h-4" />
+                New Group Chat
+              </Button>
             </div>
           </div>
         )}

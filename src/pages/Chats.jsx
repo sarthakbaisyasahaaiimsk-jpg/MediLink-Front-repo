@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as apiClient from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, MoreVertical, Search, Phone, Video, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Phone, Video, MessageCircle, ShieldCheck, ShieldOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ChatListItem from '@/components/chat/ChatListItem';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInput from '@/components/chat/ChatInput';
+import DecryptedMessage from '@/components/chat/DecryptedMessage';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { useE2EKeys } from '@/hooks/useE2EKeys';
+import { encryptMessage } from '@/utils/crypto';
 
 export default function Chats() {
   const [user, setUser] = useState(null);
@@ -34,12 +37,23 @@ export default function Chats() {
     loadUser();
   }, []);
 
+  // ── E2E Encryption ──────────────────────────────────────────────────────────
+  // Derive the recipient email from the selected conversation
+  const recipientEmail = selectedConversation
+    ? selectedConversation.participants?.find(p => p !== user?.email) ?? null
+    : null;
+
+  // Initialises keypair, registers our public key, fetches theirs, derives shared AES-GCM key
+  const { sharedKey, ready: e2eReady } = useE2EKeys(user?.email ?? null, recipientEmail);
+  // ────────────────────────────────────────────────────────────────────────────
+
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations', user?.email],
     queryFn: async () => {
-      const convos = await apiClient.entities.Conversation.filter({
-        participants: user.email
-      }, '-last_message_time');
+      const convos = await apiClient.entities.Conversation.filter(
+        { participants: user.email },
+        '-last_message_time'
+      );
       return convos;
     },
     enabled: !!user?.email,
@@ -56,14 +70,15 @@ export default function Chats() {
     }
   }, [conversationIdFromUrl, conversations]);
 
-  const { data: messages = [], isLoading: loadingMessages, refetch: refetchMessages } = useQuery({
+  const { data: messages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ['messages', selectedConversation?.id],
-    queryFn: () => apiClient.entities.Message.filter(
-      { conversation_id: selectedConversation.id },
-      'created_date'
-    ),
+    queryFn: () =>
+      apiClient.entities.Message.filter(
+        { conversation_id: selectedConversation.id },
+        'created_date'
+      ),
     enabled: !!selectedConversation?.id,
-    refetchInterval: selectedConversation?.id ? 3000 : false, // 3 seconds when conversation is open
+    refetchInterval: selectedConversation?.id ? 3000 : false,
     staleTime: 1000,
   });
 
@@ -79,13 +94,13 @@ export default function Chats() {
       unreadMessages.forEach(async (msg) => {
         await apiClient.entities.Message.update(msg.id, {
           is_read: true,
-          read_by: [...(msg.read_by || []), user.email]
+          read_by: [...(msg.read_by || []), user.email],
         });
       });
-      
+
       if (selectedConversation.unread_count?.[user.email] > 0) {
         apiClient.entities.Conversation.update(selectedConversation.id, {
-          unread_count: { ...selectedConversation.unread_count, [user.email]: 0 }
+          unread_count: { ...selectedConversation.unread_count, [user.email]: 0 },
         });
       }
     }
@@ -97,26 +112,49 @@ export default function Chats() {
         throw new Error('Conversation or user not loaded');
       }
 
+      // ── Encrypt content if the shared key is ready ──────────────────────────
+      let contentToStore = messageData.content;
+      let ivToStore = null;
+      let isEncrypted = false;
+
+      if (sharedKey) {
+        try {
+          const { iv, ciphertext } = await encryptMessage(sharedKey, messageData.content);
+          contentToStore = ciphertext;
+          ivToStore = iv;
+          isEncrypted = true;
+        } catch (err) {
+          console.error('Encryption failed, sending plaintext as fallback:', err);
+        }
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
       const message = await apiClient.entities.Message.create({
         conversation_id: selectedConversation.id,
         sender_id: user.email,
         sender_name: profile?.full_name || user.full_name,
         sender_photo: profile?.profile_photo,
         ...messageData,
-        read_by: [user.email]
+        content: contentToStore,
+        iv: ivToStore,
+        is_encrypted: isEncrypted,
+        read_by: [user.email],
       });
 
       const otherParticipant = selectedConversation.participants.find(p => p !== user.email);
       const currentUnread = selectedConversation.unread_count || {};
-      
+
+      // Store a neutral preview so ciphertext never leaks into the sidebar
+      const lastMessagePreview = isEncrypted ? '🔒 Encrypted message' : messageData.content.slice(0, 50);
+
       await apiClient.entities.Conversation.update(selectedConversation.id, {
-        last_message: messageData.content.slice(0, 50),
+        last_message: lastMessagePreview,
         last_message_time: new Date().toISOString(),
         last_message_sender: user.email,
         unread_count: {
           ...currentUnread,
-          [otherParticipant]: (currentUnread[otherParticipant] || 0) + 1
-        }
+          [otherParticipant]: (currentUnread[otherParticipant] || 0) + 1,
+        },
       });
 
       return message;
@@ -130,9 +168,9 @@ export default function Chats() {
       toast({
         title: 'Failed to send message',
         description: error.message || 'Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const filteredConversations = conversations.filter(c => {
@@ -145,21 +183,25 @@ export default function Chats() {
     const otherIndex = conversation.participants?.findIndex(p => p !== user?.email);
     return {
       name: conversation.participant_names?.[otherIndex] || 'Doctor',
-      photo: conversation.participant_photos?.[otherIndex]
+      photo: conversation.participant_photos?.[otherIndex],
     };
   };
 
-  const other = selectedConversation ? getOtherParticipant(selectedConversation) : { name: '', photo: null };
+  const other = selectedConversation
+    ? getOtherParticipant(selectedConversation)
+    : { name: '', photo: null };
   const initials = other.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div className="h-screen flex bg-slate-100">
-      {/* Chat List Sidebar */}
-      <div className={cn(
-        "w-full md:w-96 bg-white border-r border-slate-200 flex flex-col",
-        "md:flex",
-        !showChatList && "hidden md:flex"
-      )}>
+      {/* ── Chat List Sidebar ─────────────────────────────────────────────────── */}
+      <div
+        className={cn(
+          'w-full md:w-96 bg-white border-r border-slate-200 flex flex-col',
+          'md:flex',
+          !showChatList && 'hidden md:flex'
+        )}
+      >
         <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-teal-600 to-teal-500">
           <h1 className="text-xl font-bold text-white">Messages</h1>
           <p className="text-teal-100 text-sm">{profile?.full_name}</p>
@@ -202,13 +244,11 @@ export default function Chats() {
         </ScrollArea>
       </div>
 
-      {/* Chat Area */}
-      <div className={cn(
-        "flex-1 flex flex-col",
-        showChatList && "hidden md:flex"
-      )}>
+      {/* ── Chat Area ─────────────────────────────────────────────────────────── */}
+      <div className={cn('flex-1 flex flex-col', showChatList && 'hidden md:flex')}>
         {selectedConversation ? (
           <>
+            {/* Header */}
             <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -218,7 +258,7 @@ export default function Chats() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              
+
               {other.photo ? (
                 <img src={other.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
               ) : (
@@ -226,10 +266,23 @@ export default function Chats() {
                   {initials}
                 </div>
               )}
-              
+
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold text-slate-800 truncate">{other.name}</h2>
-                <p className="text-xs text-slate-500">Online</p>
+                {/* E2E status indicator */}
+                <div className="flex items-center gap-1">
+                  {e2eReady ? (
+                    <>
+                      <ShieldCheck className="w-3 h-3 text-teal-500" />
+                      <p className="text-xs text-teal-600 font-medium">End-to-end encrypted</p>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldOff className="w-3 h-3 text-slate-400" />
+                      <p className="text-xs text-slate-400">Setting up encryption…</p>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-1">
@@ -245,9 +298,13 @@ export default function Chats() {
               </div>
             </div>
 
-            <div 
-               className="flex-1 overflow-y-auto p-4 pb-24 space-y-3"     
-               style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23e2e8f0" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}
+            {/* Messages */}
+            <div
+              className="flex-1 overflow-y-auto p-4 pb-24 space-y-3"
+              style={{
+                backgroundImage:
+                  'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23e2e8f0\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+              }}
             >
               {loadingMessages ? (
                 <div className="text-center text-slate-500">Loading messages...</div>
@@ -258,11 +315,15 @@ export default function Chats() {
                 </div>
               ) : (
                 messages.map((message) => (
-                  <MessageBubble
+                  // DecryptedMessage handles decryption internally and renders MessageBubble
+                  <DecryptedMessage
                     key={message.id}
                     message={message}
                     isOwn={message.sender_id === user?.email}
-                    showSender={selectedConversation.is_group && message.sender_id !== user?.email}
+                    showSender={
+                      selectedConversation.is_group && message.sender_id !== user?.email
+                    }
+                    sharedKey={sharedKey}
                   />
                 ))
               )}

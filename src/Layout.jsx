@@ -218,7 +218,13 @@ export default function Layout({ children, currentPageName }) {
       </nav>
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0">
+      <main
+        className={cn(
+          "lg:ml-64 pt-14 lg:pt-0",
+          currentPageName === 'Chats' ? "pb-28" : "pb-20",
+          "lg:pb-0"
+      )}
+     >
         {children}
       </main>
     </div>

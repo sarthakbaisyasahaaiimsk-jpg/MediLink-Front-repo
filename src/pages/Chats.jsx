@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as apiClient from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, MoreVertical, Search, Phone, Video, MessageCircle, ShieldCheck, ShieldOff, Users, X, Plus } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Search, Phone, Video, MessageCircle, ShieldCheck, ShieldOff, Users, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ChatListItem from '@/components/chat/ChatListItem';
-import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInput from '@/components/chat/ChatInput';
 import DecryptedMessage from '@/components/chat/DecryptedMessage';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,22 +14,23 @@ import { useE2EKeys } from '@/hooks/useE2EKeys';
 import { encryptMessage } from '@/utils/crypto';
 
 // ── Create Group Modal ───────────────────────────────────────────────────────
-function CreateGroupModal({ user, onClose, onCreated }) {
+function CreateGroupModal({ user, contacts, onClose, onCreated }) {
   const [groupName, setGroupName] = useState('');
-  const [memberEmail, setMemberEmail] = useState('');
-  const [members, setMembers] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const addMember = () => {
-    const email = memberEmail.trim().toLowerCase();
-    if (!email || members.includes(email) || email === user?.email) return;
-    setMembers(prev => [...prev, email]);
-    setMemberEmail('');
-  };
+  const filtered = contacts.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const removeMember = (email) => {
-    setMembers(prev => prev.filter(m => m !== email));
+  const toggle = (contact) => {
+    setSelected(prev =>
+      prev.find(s => s.email === contact.email)
+        ? prev.filter(s => s.email !== contact.email)
+        : [...prev, contact]
+    );
   };
 
   const handleCreate = async () => {
@@ -38,15 +38,15 @@ function CreateGroupModal({ user, onClose, onCreated }) {
       toast({ title: 'Group name is required', variant: 'destructive' });
       return;
     }
-    if (members.length < 1) {
-      toast({ title: 'Add at least one member', variant: 'destructive' });
+    if (selected.length < 1) {
+      toast({ title: 'Select at least one member', variant: 'destructive' });
       return;
     }
 
     setLoading(true);
     try {
-      const participants = [user.email, ...members];
-      const participantNames = participants.map(() => '');
+      const participants = [user.email, ...selected.map(s => s.email)];
+      const participantNames = ['', ...selected.map(s => s.name)];
 
       const group = await apiClient.entities.Conversation.create({
         is_group: true,
@@ -71,61 +71,110 @@ function CreateGroupModal({ user, onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
           <h2 className="text-lg font-semibold text-slate-800">New Group Chat</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-slate-700 mb-1 block">Group Name</label>
-          <Input
-            value={groupName}
-            onChange={e => setGroupName(e.target.value)}
-            placeholder="e.g. Cardiology Team"
-            className="bg-slate-50"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-slate-700 mb-1 block">Add Members</label>
-          <div className="flex gap-2">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
+          {/* Group Name */}
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">Group Name</label>
             <Input
-              value={memberEmail}
-              onChange={e => setMemberEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addMember()}
-              placeholder="doctor@email.com"
-              className="bg-slate-50 flex-1"
+              value={groupName}
+              onChange={e => setGroupName(e.target.value)}
+              placeholder="e.g. Cardiology Team"
+              className="bg-slate-50"
             />
-            <Button onClick={addMember} size="icon" className="bg-teal-600 hover:bg-teal-700 text-white">
-              <Plus className="w-4 h-4" />
-            </Button>
+          </div>
+
+          {/* Selected chips */}
+          {selected.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selected.map(c => (
+                <span
+                  key={c.email}
+                  className="flex items-center gap-1 bg-teal-50 text-teal-800 text-xs font-medium px-2.5 py-1 rounded-full"
+                >
+                  {c.name}
+                  <button onClick={() => toggle(c)} className="ml-0.5 text-teal-500 hover:text-teal-700">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Search & pick contacts */}
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">
+              Add Members ({selected.length} selected)
+            </label>
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search contacts..."
+                className="pl-9 bg-slate-50"
+              />
+            </div>
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <ScrollArea className="h-52">
+                {filtered.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">No contacts found</p>
+                ) : (
+                  filtered.map(contact => {
+                    const isSelected = !!selected.find(s => s.email === contact.email);
+                    const initials = contact.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                    return (
+                      <div
+                        key={contact.email}
+                        onClick={() => toggle(contact)}
+                        className={cn(
+                          'flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-slate-50 last:border-0',
+                          isSelected ? 'bg-teal-50' : 'hover:bg-slate-50'
+                        )}
+                      >
+                        {contact.photo ? (
+                          <img src={contact.photo} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-teal-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                            {initials}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{contact.name}</p>
+                          <p className="text-xs text-slate-400 truncate">{contact.email}</p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </ScrollArea>
+            </div>
           </div>
         </div>
 
-        {members.length > 0 && (
-          <div className="space-y-1">
-            {members.map(email => (
-              <div key={email} className="flex items-center justify-between bg-teal-50 rounded-lg px-3 py-2">
-                <span className="text-sm text-teal-800 truncate">{email}</span>
-                <button onClick={() => removeMember(email)} className="text-teal-500 hover:text-teal-700 ml-2">
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-2">
+        {/* Footer */}
+        <div className="flex gap-2 p-5 border-t border-slate-100 shrink-0">
           <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
           <Button
             className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
             onClick={handleCreate}
             disabled={loading}
           >
-            {loading ? 'Creating...' : 'Create Group'}
+            {loading ? 'Creating...' : `Create Group${selected.length > 0 ? ` (${selected.length + 1})` : ''}`}
           </Button>
         </div>
       </div>
@@ -140,7 +189,7 @@ export default function Chats() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showChatList, setShowChatList] = useState(true);
-  const [showCreateGroup, setShowCreateGroup] = useState(false); // ← NEW
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -178,6 +227,28 @@ export default function Chats() {
     enabled: !!user?.email,
     refetchInterval: 5000,
   });
+
+  // ── Derive contacts from existing 1:1 conversations ─────────────────────────
+  const contacts = useMemo(() => {
+    if (!user?.email) return [];
+    const seen = new Set();
+    const result = [];
+    conversations.forEach(c => {
+      if (c.is_group) return;
+      const idx = c.participants?.findIndex(p => p !== user.email);
+      if (idx === -1 || idx === undefined) return;
+      const email = c.participants?.[idx];
+      if (!email || seen.has(email)) return;
+      seen.add(email);
+      result.push({
+        email,
+        name: c.participant_names?.[idx] || email,
+        photo: c.participant_photos?.[idx] || null,
+      });
+    });
+    return result;
+  }, [conversations, user?.email]);
+  // ────────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (conversationIdFromUrl && conversations.length > 0) {
@@ -318,10 +389,11 @@ export default function Chats() {
 
   return (
     <div className="h-screen flex bg-slate-100">
-      {/* ── Create Group Modal ─────────────────────────────────────────────── */}
+      {/* ── Create Group Modal ───────────────────────────────────────────────── */}
       {showCreateGroup && (
         <CreateGroupModal
           user={user}
+          contacts={contacts}
           onClose={() => setShowCreateGroup(false)}
           onCreated={(group) => {
             queryClient.invalidateQueries(['conversations']);
@@ -331,7 +403,7 @@ export default function Chats() {
         />
       )}
 
-      {/* ── Chat List Sidebar ─────────────────────────────────────────────── */}
+      {/* ── Chat List Sidebar ────────────────────────────────────────────────── */}
       <div
         className={cn(
           'w-full md:w-96 bg-white border-r border-slate-200 flex flex-col',
@@ -339,8 +411,8 @@ export default function Chats() {
           !showChatList && 'hidden md:flex'
         )}
       >
-        {/* Header with New Group button */}
-        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-teal-600 to-teal-500">
+        {/* Header */}
+        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-teal-600 to-teal-500 shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">Messages</h1>
@@ -358,7 +430,8 @@ export default function Chats() {
           </div>
         </div>
 
-        <div className="p-3 border-b border-slate-100">
+        {/* Search */}
+        <div className="p-3 border-b border-slate-100 shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
@@ -370,6 +443,7 @@ export default function Chats() {
           </div>
         </div>
 
+        {/* Scrollable conversation list */}
         <ScrollArea className="flex-1">
           {loadingConversations ? (
             <div className="p-4 text-center text-slate-500">Loading...</div>
@@ -395,12 +469,12 @@ export default function Chats() {
         </ScrollArea>
       </div>
 
-      {/* ── Chat Area ─────────────────────────────────────────────────────── */}
+      {/* ── Right Panel ─────────────────────────────────────────────────────── */}
       <div className={cn('flex-1 flex flex-col', showChatList && 'hidden md:flex')}>
         {selectedConversation ? (
           <>
-            {/* Header */}
-            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
+            {/* Chat Header */}
+            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -502,13 +576,15 @@ export default function Chats() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-slate-50">
-            <div className="text-center text-slate-500">
-              <div className="w-24 h-24 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <MessageCircle className="w-12 h-12 text-slate-400" />
+          /* ── Empty state with scrollable contacts ──────────────────────────── */
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+            {/* Top section */}
+            <div className="text-center pt-10 pb-6 px-4 shrink-0">
+              <div className="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <MessageCircle className="w-10 h-10 text-slate-400" />
               </div>
               <h2 className="text-xl font-semibold text-slate-700">Your Messages</h2>
-              <p className="mt-2">Select a conversation to start chatting</p>
+              <p className="mt-1 text-slate-500 text-sm">Select a conversation or start a new group</p>
               <Button
                 className="mt-4 bg-teal-600 hover:bg-teal-700 text-white gap-2"
                 onClick={() => setShowCreateGroup(true)}
@@ -517,6 +593,48 @@ export default function Chats() {
                 New Group Chat
               </Button>
             </div>
+
+            {/* Scrollable contacts */}
+            {contacts.length > 0 && (
+              <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 shrink-0">
+                  Contacts
+                </p>
+                <div className="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+                  {contacts.map((contact) => {
+                    const ini = contact.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                    const convo = conversations.find(
+                      c => !c.is_group && c.participants?.includes(contact.email)
+                    );
+                    return (
+                      <div
+                        key={contact.email}
+                        onClick={() => {
+                          if (convo) {
+                            setSelectedConversation(convo);
+                            setShowChatList(false);
+                          }
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                      >
+                        {contact.photo ? (
+                          <img src={contact.photo} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                            {ini}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-800 text-sm truncate">{contact.name}</p>
+                          <p className="text-xs text-slate-400 truncate">{contact.email}</p>
+                        </div>
+                        <MessageCircle className="w-4 h-4 text-teal-400 shrink-0" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

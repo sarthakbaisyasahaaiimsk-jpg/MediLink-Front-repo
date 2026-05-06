@@ -133,7 +133,7 @@ variant: 'default',
   };
 
   return (
-    <div className="fixed bottom-24 left-[63%] -translate-x-1/2 w-[70%] max-w-3xl bg-white border border-slate-200 shadow-lg rounded-xl z-50">
+    <div className="bg-white border-t border-slate-200 w-full">
       {uploading && (
         <div className="text-xs text-slate-500 px-4 py-2 bg-slate-50 border-b">
           ⏳ Uploading file...
@@ -168,7 +168,7 @@ variant: 'default',
         </div>
       )}
 
-      <div className="flex items-center gap-2 p-2">
+      <div className="flex items-end gap-2 p-2">
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -213,15 +213,22 @@ variant: 'default',
           </Button>
         )}
 
-        <Input
+        <textarea
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+              setMessage(e.target.value);
+
+               // auto-grow like WhatsApp
+              e.target.style.height = "auto";
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+        }}
           onKeyDown={handleKeyDown}
           placeholder={attachment ? 'Add a caption...' : 'Type a message...'}
           disabled={disabled || sending || uploading}
-          className="flex-1 bg-slate-50 border-slate-300 focus:bg-white"
-          type="text"
-        />
+          rows={1}
+          className="flex-1 resize-none overflow-y-auto max-h-[120px] bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:bg-white"
+     />
+        
 
         <Button
           onClick={handleSend}

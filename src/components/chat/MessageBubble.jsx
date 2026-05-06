@@ -132,7 +132,7 @@ export default function MessageBubble({
       )}
       
       <div className={cn(
-        "px-4 py-2 rounded-2xl shadow-sm max-w-[85%] sm:max-w-[70%] relative",
+        "px-4 py-2 rounded-2xl shadow-sm relative max-w-[65%] break-words whitespace-pre-wrap",
         isOwn 
           ? "bg-teal-500 text-white rounded-br-md" 
           : "bg-slate-200 text-slate-900 rounded-bl-md"

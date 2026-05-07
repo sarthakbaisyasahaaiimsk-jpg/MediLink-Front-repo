@@ -18,7 +18,7 @@ const navItems = [
   { name: 'Cases', icon: Briefcase, page: 'Cases' },
   {name: 'Drugs', icon: Pill, page: 'Drugs' }, 
   { name: 'References', icon: BookOpen, page: 'References' },
-  { name: 'Updates', icon: Rss, page: 'Updates' }, 
+  { name: 'Updates', icon: Rss, page: 'NewUpdates' } , // ← change page: to 'NewUpdates'
   { name: 'Events', icon: Calendar, page: 'Events' },
   { name: 'Profile', icon: User, page: 'Profile' },
 ];

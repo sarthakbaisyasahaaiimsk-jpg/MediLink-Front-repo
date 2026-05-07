@@ -72,7 +72,7 @@ export const PAGES = {
     "Profile": Profile,
     "Admin": Admin,
     "References": References,
-    "NewUpdates": NewUpdates,
+    "Updates": NewUpdates,
 }
 
 export const pagesConfig = {

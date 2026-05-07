@@ -17,7 +17,7 @@ const SOURCE_META = {
   OTHER:        { color: 'bg-slate-50 text-slate-600 border-slate-200',    dot: 'bg-slate-400'  },
 };
 
-const SOURCES = ['All', 'WHO', 'CDC', 'NIH', 'NICE', 'MOHFW', 'ICMR', 'Hindu Health'];
+
 
 function sourceMeta(source) {
   const key = (source || '').toUpperCase();
@@ -87,7 +87,7 @@ function ArticleCard({ article }) {
   );
 }
 
-const SOURCES = ['All', 'WHO', 'CDC', 'NIH', 'NICE'];
+const SOURCES = ['All', 'WHO', 'CDC', 'NIH', 'NICE', 'MOHFW', 'ICMR', 'Hindu Health'];
 
 export default function NewUpdates() {
   const [search, setSearch]       = useState('');

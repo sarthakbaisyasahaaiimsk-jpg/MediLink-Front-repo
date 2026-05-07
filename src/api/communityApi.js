@@ -70,8 +70,8 @@ export const createThread = async (forumId, data) => {
    SINGLE THREAD
 ========================= */
 
-export const getThread = async (threadId) => {
-  const res = await fetch(`${BASE}/threads/${threadId}`);
+export const getThread = async (threadId, page = 1) => {
+  const res = await fetch(`${BASE}/threads/${threadId}?page=${page}`);
   return safeJson(res);
 };
 

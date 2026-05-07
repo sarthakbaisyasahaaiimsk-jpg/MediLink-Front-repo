@@ -58,6 +58,7 @@ import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import References from './pages/References';
 import __Layout from './Layout.jsx';
+import NewUpdates from './pages/NewUpdates';
 
 
 export const PAGES = {
@@ -71,6 +72,7 @@ export const PAGES = {
     "Profile": Profile,
     "Admin": Admin,
     "References": References,
+    "NewUpdates": NewUpdates,
 }
 
 export const pagesConfig = {

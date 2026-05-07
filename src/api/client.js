@@ -394,6 +394,42 @@ export const drugs = {
     apiCall(`/drugs/detail?name=${encodeURIComponent(name)}&rxcui=${encodeURIComponent(rxcui)}`),
 };
 // ========================
+// CONTACTS
+// ========================
+export const contacts = {
+  listGroups: () =>
+    apiCall('/contacts/groups'),
+
+  createGroup: (name, color) =>
+    apiCall('/contacts/groups', {
+      method: 'POST',
+      body: JSON.stringify({ name, color }),
+    }),
+
+  updateGroup: (id, data) =>
+    apiCall(`/contacts/groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteGroup: (id) =>
+    apiCall(`/contacts/groups/${id}`, { method: 'DELETE' }),
+
+  addMember: (groupId, userId) =>
+    apiCall(`/contacts/groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId }),
+    }),
+
+  removeMember: (groupId, userId) =>
+    apiCall(`/contacts/groups/${groupId}/members/${userId}`, {
+      method: 'DELETE',
+    }),
+
+  allContacts: () =>
+    apiCall('/contacts/all'),
+};
+// ========================
 // EXPORT GROUP
 // ========================
 export const entities = {
@@ -406,4 +442,4 @@ export const entities = {
   References: references,
 };
 
-export default { auth, entities, zotero };
+export default { auth, entities, zotero, contacts };

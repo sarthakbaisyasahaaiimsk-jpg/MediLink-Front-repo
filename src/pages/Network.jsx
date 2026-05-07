@@ -54,14 +54,7 @@ const colorStyle = (color) =>
 // contacts.addMember(gid, uid)      POST /contacts/groups/:id/members
 // contacts.removeMember(gid, uid)   DELETE /contacts/groups/:id/members/:uid
 
-const contactsApi = {
-  listGroups:   ()           => apiClient.request('GET',    '/contacts/groups'),
-  createGroup:  (name, color)=> apiClient.request('POST',   '/contacts/groups', { name, color }),
-  updateGroup:  (id, data)   => apiClient.request('PUT',    `/contacts/groups/${id}`, data),
-  deleteGroup:  (id)         => apiClient.request('DELETE', `/contacts/groups/${id}`),
-  addMember:    (gid, uid)   => apiClient.request('POST',   `/contacts/groups/${gid}/members`, { user_id: uid }),
-  removeMember: (gid, uid)   => apiClient.request('DELETE', `/contacts/groups/${gid}/members/${uid}`),
-};
+import { contacts as contactsApi } from '@/api/client';
 
 
 // ── Sub-components ─────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { admin as adminApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://medilink-back-repo-1.onrender.com";
 
 const TABS = ['Dashboard', 'Users', 'Cases', 'Events', 'Chats', 'Networking', 'References' , 'Prescriptions'];
 
@@ -274,8 +275,8 @@ const Prescriptions = () => {
 
   const fetchList = () => {
     setListLoading(true);
-    fetch('/api/prescriptions/list', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    fetch(`${API_BASE_URL}/api/prescriptions/list`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
     })
       .then(r => r.json())
       .then(d => { setList(d); setListLoading(false); })
@@ -294,11 +295,11 @@ const Prescriptions = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/prescriptions/upload', {
+      const res = await fetch(`${API_BASE_URL}/api/prescriptions/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify(parsed)
       });
@@ -315,9 +316,9 @@ const Prescriptions = () => {
   };
 
   const handleDelete = async (id) => {
-    await fetch(`/api/prescriptions/${id}`, {
+    await fetch(`${API_BASE_URL}/api/prescriptions/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
     });
     fetchList();
   };

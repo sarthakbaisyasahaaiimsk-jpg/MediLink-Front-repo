@@ -1,6 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://medilink-back-repo-1.onrender.com";
 const QUICK_SEARCHES = ["Tuberculosis", "Hypertension", "Type 2 Diabetes", "Malaria", "Typhoid"];
 
 export default function Prescriptions() {
@@ -10,6 +9,7 @@ export default function Prescriptions() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("meds");
 
+ // Replace the search function with this
   const search = async (name) => {
     const term = name || query;
     if (!term.trim()) return;
@@ -17,17 +17,19 @@ export default function Prescriptions() {
     setError("");
     setData(null);
     try {
-      const res = await axios.get(`/api/prescriptions/search?disease=${encodeURIComponent(term)}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      setData(res.data);
-      setActiveTab("meds");
-    } catch (err) {
-      setError(err.response?.data?.error || "Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const res = await fetch(`/api/prescriptions/search?disease=${encodeURIComponent(term)}`, {
+        headers: {Authorization: `Bearer ${localStorage.getItem("authToken")}`}
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || "Not found");
+    setData(json);
+    setActiveTab("meds");
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+ };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">

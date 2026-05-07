@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import * as apiClient from '@/api/client';
+
 
 const SOURCE_META = {
   WHO:   { color: 'bg-blue-50 text-blue-700 border-blue-200',   dot: 'bg-blue-500'   },

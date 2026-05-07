@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { admin as adminApi } from '@/api/client';
 import { Button } from '@/components/ui/button';
 
-const TABS = ['Dashboard', 'Users', 'Cases', 'Events', 'Chats', 'Networking', 'References'];
+const TABS = ['Dashboard', 'Users', 'Cases', 'Events', 'Chats', 'Networking', 'References' , 'Prescriptions'];
 
 const Badge = ({ state }) => {
   const colors = {
@@ -263,8 +263,146 @@ const References = () => {
   );
 };
 
+// ── PRESCRIPTIONS ───────────────────────────────────
+const Prescriptions = () => {
+  const [json, setJson] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [list, setList] = useState([]);
+  const [listLoading, setListLoading] = useState(true);
+
+  const fetchList = () => {
+    setListLoading(true);
+    fetch('/api/prescriptions/list', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(r => r.json())
+      .then(d => { setList(d); setListLoading(false); })
+      .catch(() => setListLoading(false));
+  };
+
+  useEffect(() => { fetchList(); }, []);
+
+  const handleSubmit = async () => {
+    setError(''); setSuccess('');
+    let parsed;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      setError('Invalid JSON — please check the format.'); return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/prescriptions/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(parsed)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setSuccess(`Saved: ${data.disease}`);
+      setJson('');
+      fetchList();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    await fetch(`/api/prescriptions/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+    fetchList();
+  };
+
+  const TEMPLATE = JSON.stringify({
+    disease: "Disease Name",
+    icd_code: "A00",
+    source: "WHO / ICMR 2024",
+    last_updated: "2024",
+    medications: [
+      { drug: "Drug Name", dose: "Xmg once daily", duration: "X days" }
+    ],
+    contraindications: [
+      "Condition: reason"
+    ],
+    patient_groups: [
+      { name: "Pregnancy", note: "Special instruction here" }
+    ]
+  }, null, 2);
+
+  return (
+    <div className="space-y-6">
+      {/* Upload form */}
+      <div className="border rounded-lg p-4 space-y-3">
+        <p className="text-sm font-medium">Upload guideline JSON</p>
+        <button
+          className="text-xs text-slate-400 underline"
+          onClick={() => setJson(TEMPLATE)}
+        >
+          Load template
+        </button>
+        <textarea
+          className="w-full font-mono text-xs border rounded-lg p-3 h-64 focus:outline-none focus:ring-2 focus:ring-slate-300"
+          placeholder="Paste guideline JSON here…"
+          value={json}
+          onChange={e => setJson(e.target.value)}
+        />
+        {error && <p className="text-xs text-red-500">{error}</p>}
+        {success && <p className="text-xs text-green-600">{success}</p>}
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? 'Saving…' : 'Save to DB'}
+        </Button>
+      </div>
+
+      {/* Existing guidelines */}
+      <div>
+        <p className="text-sm font-medium mb-3">Saved guidelines</p>
+        {listLoading
+          ? <p className="text-sm text-slate-400">Loading...</p>
+          : list.length === 0
+            ? <p className="text-sm text-slate-400">No guidelines saved yet.</p>
+            : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-slate-50 text-left text-xs text-slate-500">
+                    <th className="p-2">Disease</th>
+                    <th className="p-2">ICD</th>
+                    <th className="p-2">Source</th>
+                    <th className="p-2">Updated</th>
+                    <th className="p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map(rx => (
+                    <tr key={rx.id} className="border-b hover:bg-slate-50">
+                      <td className="p-2 font-medium">{rx.disease}</td>
+                      <td className="p-2 text-slate-400">{rx.icd_code}</td>
+                      <td className="p-2 text-xs text-slate-500">{rx.source}</td>
+                      <td className="p-2 text-xs">{rx.last_updated}</td>
+                      <td className="p-2">
+                        <ConfirmBtn label="Delete" variant="destructive" onConfirm={() => handleDelete(rx.id)} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+        }
+      </div>
+    </div>
+  );
+};
+
 // ── MAIN ADMIN PAGE ─────────────────────────────────
-const TAB_COMPONENTS = { Dashboard, Users, Cases, Events, Chats, Networking, References };
+const TAB_COMPONENTS = { Dashboard, Users, Cases, Events, Chats, Networking, References, Prescriptions };
 
 export default function Admin() {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
@@ -313,3 +451,4 @@ export default function Admin() {
     </div>
   );
 }
+

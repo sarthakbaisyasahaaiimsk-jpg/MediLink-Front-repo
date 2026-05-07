@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Rss, ExternalLink, RefreshCw, AlertCircle, Clock, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import * as apiClient from '@/api/client';
 
-
 const SOURCE_META = {
-  WHO:   { color: 'bg-blue-50 text-blue-700 border-blue-200',   dot: 'bg-blue-500'   },
-  CDC:   { color: 'bg-red-50 text-red-700 border-red-200',      dot: 'bg-red-500'    },
+  WHO:   { color: 'bg-blue-50 text-blue-700 border-blue-200',       dot: 'bg-blue-500'   },
+  CDC:   { color: 'bg-red-50 text-red-700 border-red-200',          dot: 'bg-red-500'    },
   NIH:   { color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
   NICE:  { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  OTHER: { color: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400'  },
+  OTHER: { color: 'bg-slate-50 text-slate-600 border-slate-200',    dot: 'bg-slate-400'  },
 };
 
 function sourceMeta(source) {
@@ -88,20 +85,48 @@ function ArticleCard({ article }) {
 const SOURCES = ['All', 'WHO', 'CDC', 'NIH', 'NICE'];
 
 export default function NewUpdates() {
-  const [search, setSearch]   = useState('');
-  const [source, setSource]   = useState('All');
+  const [search, setSearch]       = useState('');
+  const [source, setSource]       = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['news', source],
-    queryFn: () => newsApi.list(source !== 'All' ? { source } : {}),
+    queryFn: () =>
+      apiClient.news.list(source !== 'All' ? { source } : {}),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Trigger backend to re-fetch RSS feeds and store new articles
+      await apiClient.default.news?.refresh?.() ??
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://medilink-back-repo-1.onrender.com'}/api/news/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+      // Invalidate cache so fresh articles load
+      await queryClient.invalidateQueries({ queryKey: ['news'] });
+      await refetch();
+    } catch (e) {
+      console.error('Refresh failed:', e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const filtered = data.filter(a =>
-    !search || a.title?.toLowerCase().includes(search.toLowerCase()) ||
-               a.summary?.toLowerCase().includes(search.toLowerCase())
+    !search ||
+    a.title?.toLowerCase().includes(search.toLowerCase()) ||
+    a.summary?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const isBusy = isFetching || refreshing;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
@@ -132,11 +157,11 @@ export default function NewUpdates() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => refetch()}
-                disabled={isFetching}
-                title="Refresh"
+                onClick={handleRefresh}
+                disabled={isBusy}
+                title="Refresh feeds"
               >
-                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin text-teal-500' : 'text-slate-500'}`} />
+                <RefreshCw className={`w-4 h-4 ${isBusy ? 'animate-spin text-teal-500' : 'text-slate-500'}`} />
               </Button>
             </div>
           </div>
@@ -157,6 +182,14 @@ export default function NewUpdates() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
 
+        {/* Empty DB hint */}
+        {!isLoading && !isError && data.length === 0 && !search && (
+          <div className="flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-2xl p-4 mb-6 text-sm text-teal-700">
+            <Rss className="w-5 h-5 shrink-0" />
+            <span>No articles yet. Click the refresh button above to fetch the latest feeds from WHO, CDC, NIH, and NICE.</span>
+          </div>
+        )}
+
         {/* Error state */}
         {isError && (
           <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 text-sm text-red-700">
@@ -169,7 +202,7 @@ export default function NewUpdates() {
         )}
 
         {/* Count badge */}
-        {!isLoading && !isError && (
+        {!isLoading && !isError && data.length > 0 && (
           <div className="flex items-center gap-2 mb-5 text-sm text-slate-500">
             <Globe className="w-4 h-4" />
             <span>
@@ -184,23 +217,21 @@ export default function NewUpdates() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <ArticleSkeleton key={i} />)}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && search ? (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Rss className="w-10 h-10 text-slate-300" />
+              <Search className="w-10 h-10 text-slate-300" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700">No updates found</h3>
-            <p className="text-slate-500 mt-1 text-sm">
-              {search ? 'Try a different search term.' : 'Check back soon — feeds refresh hourly.'}
-            </p>
+            <h3 className="text-lg font-semibold text-slate-700">No results</h3>
+            <p className="text-slate-500 mt-1 text-sm">Try a different search term.</p>
           </div>
-        ) : (
+        ) : filtered.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(article => (
               <ArticleCard key={article.id} article={article} />
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

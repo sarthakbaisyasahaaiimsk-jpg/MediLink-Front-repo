@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import * as apiClient from '@/api/client';
 import { 
   Home, MessageCircle, Users, Briefcase, Calendar, User, Menu, X,
-  Stethoscope,BookOpen,Pill,MessageSquare , Rss,
+  Stethoscope, BookOpen, Pill, MessageSquare, Rss,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,9 +15,9 @@ const navItems = [
   { name: 'Network', icon: Users, page: 'Network' },
   { name: 'Forum', icon: MessageSquare, page: 'Forum' },
   { name: 'Cases', icon: Briefcase, page: 'Cases' },
-  {name: 'Drugs', icon: Pill, page: 'Drugs' }, 
+  { name: 'Drugs', icon: Pill, page: 'Drugs' },
   { name: 'References', icon: BookOpen, page: 'References' },
-  { name: 'Updates', icon: Rss, page: 'NewUpdates' } , // ← change page: to 'NewUpdates'
+  { name: 'Updates', icon: Rss, page: 'NewUpdates' },
   { name: 'Events', icon: Calendar, page: 'Events' },
   { name: 'Profile', icon: User, page: 'Profile' },
 ];
@@ -34,7 +33,6 @@ export default function Layout({ children, currentPageName }) {
         const u = await apiClient.auth.me();
         setUser(u);
         
-        // Get unread message count
         const conversations = await apiClient.entities.Conversation.filter({
           participants: u.email
         });
@@ -56,45 +54,45 @@ export default function Layout({ children, currentPageName }) {
 
   // Full-screen pages without layout
   if (currentPageName === 'Chats') {
-  return (
-    <>
-      {children}
+    return (
+      <>
+        {children}
 
-      {/* Bottom Nav ONLY for Chats */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
-        <div className="flex items-center justify-around py-2">
-          {navItems.map(item => (
-            <Link
-              key={item.name}
-              to={createPageUrl(item.page)}
-              className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative",
-                currentPageName === item.page
-                  ? "text-teal-600"
-                  : "text-slate-400"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.name}</span>
-              {item.name === 'Chats' && unreadCount > 0 && (
-                <span className="absolute -top-1 right-1 w-4 h-4 bg-teal-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
-          ))}
-        </div>
-      </nav>
-    </>
-  );
-}
+        {/* Bottom Nav ONLY for Chats */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+          <div className="flex items-center justify-around py-2">
+            {navItems.map(item => (
+              <Link
+                key={item.name}
+                to={`/${item.page}`}
+                className={cn(
+                  "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative",
+                  currentPageName === item.page
+                    ? "text-teal-600"
+                    : "text-slate-400"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">{item.name}</span>
+                {item.name === 'Chats' && unreadCount > 0 && (
+                  <span className="absolute -top-1 right-1 w-4 h-4 bg-teal-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 flex-col z-50">
         <div className="p-6 border-b border-slate-100">
-          <Link to={createPageUrl('Home')} className="flex items-center gap-2">
+          <Link to="/Home" className="flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
               <Stethoscope className="w-6 h-6 text-white" />
             </div>
@@ -110,7 +108,7 @@ export default function Layout({ children, currentPageName }) {
             {navItems.map(item => (
               <li key={item.name}>
                 <Link
-                  to={createPageUrl(item.page)}
+                  to={`/${item.page}`}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
                     currentPageName === item.page
@@ -147,7 +145,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-50">
         <div className="flex items-center justify-between px-4 py-3">
-          <Link to={createPageUrl('Home')} className="flex items-center gap-2">
+          <Link to="/Home" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
               <Stethoscope className="w-5 h-5 text-white" />
             </div>
@@ -170,7 +168,7 @@ export default function Layout({ children, currentPageName }) {
               {navItems.map(item => (
                 <li key={item.name}>
                   <Link
-                    to={createPageUrl(item.page)}
+                    to={`/${item.page}`}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
@@ -198,7 +196,7 @@ export default function Layout({ children, currentPageName }) {
           {navItems.map(item => (
             <Link
               key={item.name}
-              to={createPageUrl(item.page)}
+              to={`/${item.page}`}
               className={cn(
                 "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all relative",
                 currentPageName === item.page
@@ -224,8 +222,8 @@ export default function Layout({ children, currentPageName }) {
           "lg:ml-64 pt-14 lg:pt-0",
           currentPageName === 'Chats' ? "pb-28" : "pb-20",
           "lg:pb-0"
-      )}
-     >
+        )}
+      >
         {children}
       </main>
     </div>

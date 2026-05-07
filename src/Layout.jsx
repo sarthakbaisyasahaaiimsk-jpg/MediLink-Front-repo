@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import * as apiClient from '@/api/client';
 import { 
   Home, MessageCircle, Users, Briefcase, Calendar, User, Menu, X,
-  Stethoscope,BookOpen,Pill,MessageSquare , Rss
+  Stethoscope,BookOpen,Pill,MessageSquare , Rss,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

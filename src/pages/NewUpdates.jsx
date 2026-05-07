@@ -7,12 +7,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as apiClient from '@/api/client';
 
 const SOURCE_META = {
-  WHO:   { color: 'bg-blue-50 text-blue-700 border-blue-200',       dot: 'bg-blue-500'   },
-  CDC:   { color: 'bg-red-50 text-red-700 border-red-200',          dot: 'bg-red-500'    },
-  NIH:   { color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
-  NICE:  { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  OTHER: { color: 'bg-slate-50 text-slate-600 border-slate-200',    dot: 'bg-slate-400'  },
+  WHO:          { color: 'bg-blue-50 text-blue-700 border-blue-200',       dot: 'bg-blue-500'   },
+  CDC:          { color: 'bg-red-50 text-red-700 border-red-200',          dot: 'bg-red-500'    },
+  NIH:          { color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
+  NICE:         { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  MOHFW:        { color: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
+  ICMR:         { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500' },
+  'HINDU HEALTH': { color: 'bg-rose-50 text-rose-700 border-rose-200',    dot: 'bg-rose-500'   },
+  OTHER:        { color: 'bg-slate-50 text-slate-600 border-slate-200',    dot: 'bg-slate-400'  },
 };
+
+const SOURCES = ['All', 'WHO', 'CDC', 'NIH', 'NICE', 'MOHFW', 'ICMR', 'Hindu Health'];
 
 function sourceMeta(source) {
   const key = (source || '').toUpperCase();

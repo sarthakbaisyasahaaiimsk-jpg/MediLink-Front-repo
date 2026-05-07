@@ -93,13 +93,7 @@ export default function NewUpdates() {
 
   const { data = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['news', source],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (source !== 'All') params.set('source', source);
-      const res = await fetch(`${API_BASE}/api/news?${params}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch news');
-      return res.json();
-    },
+    queryFn: () => newsApi.list(source !== 'All' ? { source } : {}),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

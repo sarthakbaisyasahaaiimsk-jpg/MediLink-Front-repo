@@ -402,6 +402,17 @@ export const drugs = {
 };
 
 // ========================
+// NEWS
+// ========================
+export const news = {
+  list: (filters = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => queryParams.append(k, v));
+    return apiCall(`/news?${queryParams.toString()}`);
+  },
+};
+
+// ========================
 // CONTACTS
 // ========================
 export const contacts = {
@@ -452,4 +463,4 @@ export const entities = {
   References: references,
 };
 
-export default { auth, entities, zotero, contacts };
+export default { auth, entities, zotero, contacts, news };

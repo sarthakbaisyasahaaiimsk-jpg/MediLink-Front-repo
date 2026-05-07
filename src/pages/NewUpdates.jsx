@@ -7,17 +7,27 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as apiClient from '@/api/client';
 
 const SOURCE_META = {
-  WHO:          { color: 'bg-blue-50 text-blue-700 border-blue-200',       dot: 'bg-blue-500'   },
-  CDC:          { color: 'bg-red-50 text-red-700 border-red-200',          dot: 'bg-red-500'    },
-  NIH:          { color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
-  NICE:         { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  MOHFW:        { color: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
-  ICMR:         { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500' },
-  'HINDU HEALTH': { color: 'bg-rose-50 text-rose-700 border-rose-200',    dot: 'bg-rose-500'   },
-  OTHER:        { color: 'bg-slate-50 text-slate-600 border-slate-200',    dot: 'bg-slate-400'  },
+  WHO:            { color: 'bg-blue-50 text-blue-700 border-blue-200',         dot: 'bg-blue-500'    },
+  CDC:            { color: 'bg-red-50 text-red-700 border-red-200',            dot: 'bg-red-500'     },
+  NIH:            { color: 'bg-purple-50 text-purple-700 border-purple-200',   dot: 'bg-purple-500'  },
+  NICE:           { color: 'bg-emerald-50 text-emerald-700 border-emerald-200',dot: 'bg-emerald-500' },
+  MOHFW:          { color: 'bg-orange-50 text-orange-700 border-orange-200',   dot: 'bg-orange-500'  },
+  ICMR:           { color: 'bg-yellow-50 text-yellow-700 border-yellow-200',   dot: 'bg-yellow-500'  },
+  'HINDU HEALTH': { color: 'bg-rose-50 text-rose-700 border-rose-200',         dot: 'bg-rose-500'    },
+  OTHER:          { color: 'bg-slate-50 text-slate-600 border-slate-200',      dot: 'bg-slate-400'   },
 };
 
-
+// Maps tab display value → exact source name stored in DB
+const SOURCE_TABS = [
+  { label: 'All',          value: 'All'          },
+  { label: 'WHO',          value: 'WHO'          },
+  { label: 'CDC',          value: 'CDC'          },
+  { label: 'NIH',          value: 'NIH'          },
+  { label: 'NICE',         value: 'NICE'         },
+  { label: 'MOHFW',        value: 'MOHFW'        },
+  { label: 'ICMR',         value: 'ICMR'         },
+  { label: 'Hindu Health', value: 'Hindu Health' },
+];
 
 function sourceMeta(source) {
   const key = (source || '').toUpperCase();
@@ -26,11 +36,11 @@ function sourceMeta(source) {
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff  = Date.now() - new Date(dateStr).getTime();
   const mins  = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days  = Math.floor(diff / 86400000);
-  if (mins < 60)  return `${mins}m ago`;
+  if (mins  < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
   return `${days}d ago`;
 }
@@ -87,35 +97,33 @@ function ArticleCard({ article }) {
   );
 }
 
-const SOURCES = ['All', 'WHO', 'CDC', 'NIH', 'NICE', 'MOHFW', 'ICMR', 'Hindu Health'];
-
 export default function NewUpdates() {
-  const [search, setSearch]       = useState('');
-  const [source, setSource]       = useState('All');
+  const [search,     setSearch]     = useState('');
+  const [source,     setSource]     = useState('All');
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
 
   const { data = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['news', source],
-    queryFn: () =>
+    queryFn:  () =>
       apiClient.news.list(source !== 'All' ? { source } : {}),
-    staleTime: 5 * 60 * 1000,
+    staleTime:           5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      // Trigger backend to re-fetch RSS feeds and store new articles
-      await apiClient.default.news?.refresh?.() ??
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://medilink-back-repo-1.onrender.com'}/api/news/refresh`, {
-          method: 'POST',
+      await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || 'https://medilink-back-repo-1.onrender.com'}/api/news/refresh`,
+        {
+          method:  'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+            Authorization:  `Bearer ${localStorage.getItem('authToken')}`,
           },
-        });
-      // Invalidate cache so fresh articles load
+        }
+      );
       await queryClient.invalidateQueries({ queryKey: ['news'] });
       await refetch();
     } catch (e) {
@@ -144,8 +152,9 @@ export default function NewUpdates() {
                 <Rss className="w-7 h-7 text-teal-500" />
                 Medical Updates
               </h1>
+              {/* FIX: subtitle now lists all 7 sources */}
               <p className="text-slate-500 mt-1 text-sm">
-                Live feeds from WHO, CDC, NIH, and NICE
+                Live feeds from WHO, CDC, NIH, NICE, MOHFW, ICMR, and Hindu Health
               </p>
             </div>
 
@@ -171,12 +180,14 @@ export default function NewUpdates() {
             </div>
           </div>
 
-          {/* Source tabs */}
-          <div className="mt-4">
+          {/* Source tabs — driven by SOURCE_TABS array so adding a new source is one line */}
+          <div className="mt-4 overflow-x-auto">
             <Tabs value={source} onValueChange={setSource}>
               <TabsList className="bg-slate-100">
-                {SOURCES.map(s => (
-                  <TabsTrigger key={s} value={s}>{s}</TabsTrigger>
+                {SOURCE_TABS.map(s => (
+                  <TabsTrigger key={s.value} value={s.value}>
+                    {s.label}
+                  </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
@@ -191,7 +202,10 @@ export default function NewUpdates() {
         {!isLoading && !isError && data.length === 0 && !search && (
           <div className="flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-2xl p-4 mb-6 text-sm text-teal-700">
             <Rss className="w-5 h-5 shrink-0" />
-            <span>No articles yet. Click the refresh button above to fetch the latest feeds from WHO, CDC, NIH, and NICE.</span>
+            <span>
+              No articles yet. Click the refresh button above to fetch the latest feeds
+              from WHO, CDC, NIH, NICE, MOHFW, ICMR, and Hindu Health.
+            </span>
           </div>
         )}
 

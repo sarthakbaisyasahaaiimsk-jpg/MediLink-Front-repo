@@ -356,6 +356,7 @@ export const zotero = {
       method: "DELETE",
     }),
 };
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const authHeaders = () => ({
@@ -363,7 +364,9 @@ const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('authToken')}`,
 });
 
-// Replace the entire admin export block with this:
+// ========================
+// ADMIN
+// ========================
 export const admin = {
   getAnalytics:       () => apiCall("/admin/analytics"),
   getUsers:           () => apiCall("/admin/users"),
@@ -387,12 +390,17 @@ export const admin = {
   getReferences:      () => apiCall("/admin/references"),
   deleteReference:   id => apiCall(`/admin/references/${id}`,         { method: "DELETE" }),
 };
+
+// ========================
+// DRUGS
+// ========================
 export const drugs = {
   search: (q, limit = 10) =>
     apiCall(`/drugs/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   detail: (name = '', rxcui = '') =>
     apiCall(`/drugs/detail?name=${encodeURIComponent(name)}&rxcui=${encodeURIComponent(rxcui)}`),
 };
+
 // ========================
 // CONTACTS
 // ========================
@@ -415,10 +423,11 @@ export const contacts = {
   deleteGroup: (id) =>
     apiCall(`/contacts/groups/${id}`, { method: 'DELETE' }),
 
-  addMember: (groupId, userId) =>
+  // sends email (doctor.created_by) since DoctorProfile has no numeric user_id exposed
+  addMember: (groupId, email) =>
     apiCall(`/contacts/groups/${groupId}/members`, {
       method: 'POST',
-      body: JSON.stringify({ user_id: userId }),
+      body: JSON.stringify({ email }),
     }),
 
   removeMember: (groupId, userId) =>
@@ -429,6 +438,7 @@ export const contacts = {
   allContacts: () =>
     apiCall('/contacts/all'),
 };
+
 // ========================
 // EXPORT GROUP
 // ========================

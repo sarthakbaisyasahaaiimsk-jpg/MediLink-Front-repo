@@ -45,21 +45,11 @@ const GROUP_COLORS = [
 const colorStyle = (color) =>
   GROUP_COLORS.find(c => c.value === color) || GROUP_COLORS[0];
 
-
-// ── API helpers (add these to your api/client.js) ──────────────────────────────
-// contacts.listGroups()             GET  /contacts/groups
-// contacts.createGroup(name, color) POST /contacts/groups
-// contacts.updateGroup(id, data)    PUT  /contacts/groups/:id
-// contacts.deleteGroup(id)          DELETE /contacts/groups/:id
-// contacts.addMember(gid, uid)      POST /contacts/groups/:id/members
-// contacts.removeMember(gid, uid)   DELETE /contacts/groups/:id/members/:uid
-
 import { contacts as contactsApi } from '@/api/client';
 
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-// Color picker for group creation / editing
 function ColorPicker({ value, onChange }) {
   return (
     <div className="flex gap-2 flex-wrap">
@@ -78,7 +68,6 @@ function ColorPicker({ value, onChange }) {
   );
 }
 
-// Modal for creating or renaming a group
 function GroupFormDialog({ open, onClose, onSubmit, initial }) {
   const [name, setName]   = useState(initial?.name  || '');
   const [color, setColor] = useState(initial?.color || 'teal');
@@ -129,7 +118,6 @@ function GroupFormDialog({ open, onClose, onSubmit, initial }) {
   );
 }
 
-// Contacts sidebar panel
 function ContactsSidebar({ groups, currentUser, onCreateGroup, onRenameGroup, onDeleteGroup,
                            onRemoveMember, selectedGroupId, onSelectGroup }) {
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
@@ -160,7 +148,6 @@ function ContactsSidebar({ groups, currentUser, onCreateGroup, onRenameGroup, on
         </div>
       ) : (
         <div className="space-y-1 overflow-y-auto flex-1">
-          {/* "All contacts" pseudo-group */}
           <button
             onClick={() => onSelectGroup(null)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
@@ -219,7 +206,6 @@ function ContactsSidebar({ groups, currentUser, onCreateGroup, onRenameGroup, on
         </div>
       )}
 
-      {/* Members list for selected group */}
       {selectedGroup && (
         <div className="mt-4 border-t border-slate-100 pt-4">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
@@ -258,13 +244,13 @@ function ContactsSidebar({ groups, currentUser, onCreateGroup, onRenameGroup, on
 }
 
 
-// Per-doctor group membership popover (shows on each DoctorCard)
+// Per-doctor group membership popover
 function AddToGroupPopover({ doctor, groups, onAdd, onRemove }) {
   const [open, setOpen] = useState(false);
 
   const membershipMap = {};
   groups.forEach(g => {
-    if (g.members.some(m => m.user_id === doctor.id)) {
+    if (g.members.some(m => m.email === doctor.created_by)) {
       membershipMap[g.id] = true;
     }
   });
@@ -286,7 +272,6 @@ function AddToGroupPopover({ doctor, groups, onAdd, onRemove }) {
 
       {open && (
         <>
-          {/* Backdrop */}
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1.5 z-20 bg-white border border-slate-200 rounded-xl shadow-lg w-52 py-1.5 overflow-hidden">
             {groups.length === 0 ? (
@@ -295,13 +280,15 @@ function AddToGroupPopover({ doctor, groups, onAdd, onRemove }) {
               </p>
             ) : (
               groups.map(group => {
-                const cs        = colorStyle(group.color);
-                const isMember  = membershipMap[group.id];
+                const cs       = colorStyle(group.color);
+                const isMember = membershipMap[group.id];
                 return (
                   <button
                     key={group.id}
                     onClick={() => {
-                      isMember ? onRemove(group.id, doctor.id) : onAdd(group.id, doctor.id);
+                      isMember
+                        ? onRemove(group.id, doctor.id)
+                        : onAdd(group.id, doctor.created_by);
                     }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
                   >
@@ -332,11 +319,10 @@ export default function Network() {
   const [selectedLocation, setSelectedLocation]   = useState('');
   const [sortBy, setSortBy]               = useState('response_rate');
 
-  // Contacts panel state
   const [contactsOpen, setContactsOpen]         = useState(false);
-  const [selectedGroupId, setSelectedGroupId]   = useState(null); // null = All contacts
+  const [selectedGroupId, setSelectedGroupId]   = useState(null);
   const [groupFormOpen, setGroupFormOpen]       = useState(false);
-  const [editingGroup, setEditingGroup]         = useState(null); // group obj or null
+  const [editingGroup, setEditingGroup]         = useState(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -383,7 +369,7 @@ export default function Network() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: ({ groupId, userId }) => contactsApi.addMember(groupId, userId),
+    mutationFn: ({ groupId, email }) => contactsApi.addMember(groupId, email),
     onSuccess:  invalidate,
   });
 
@@ -409,7 +395,7 @@ export default function Network() {
     deleteGroupMutation.mutate(id);
   };
 
-  const handleAddMember    = (groupId, userId) => addMemberMutation.mutate({ groupId, userId });
+  const handleAddMember    = (groupId, email)  => addMemberMutation.mutate({ groupId, email });
   const handleRemoveMember = (groupId, userId) => removeMemberMutation.mutate({ groupId, userId });
 
   const startConversation = async (doctor) => {
@@ -430,28 +416,22 @@ export default function Network() {
   };
 
   // ── Derived state ──────────────────────────────────────────────────────────
-
-  // When a group is selected in the sidebar, filter the grid to only those members
-  const groupMemberIds = selectedGroupId === null
-    ? null  // null = show all
+  const groupMemberEmails = selectedGroupId === null
+    ? null
     : new Set(
-        (groups.find(g => g.id === selectedGroupId)?.members || []).map(m => m.user_id)
+        (groups.find(g => g.id === selectedGroupId)?.members || []).map(m => m.email)
       );
 
-  // For "All contacts" view
-  const allContactIds = selectedGroupId === null && contactsOpen
-    ? new Set(groups.flatMap(g => g.members.map(m => m.user_id)))
+  const allContactEmails = selectedGroupId === null && contactsOpen
+    ? new Set(groups.flatMap(g => g.members.map(m => m.email)))
     : null;
 
   const filteredAndSortedDoctors = doctors
     .filter(doctor => {
       if (doctor.created_by === user?.email) return false;
 
-      // If a specific group is selected, only show its members
-      if (groupMemberIds !== null && !groupMemberIds.has(doctor.id)) return false;
-
-      // If "All contacts" tab is active in open sidebar, only show contacts
-      if (allContactIds !== null && !allContactIds.has(doctor.id)) return false;
+      if (groupMemberEmails !== null && !groupMemberEmails.has(doctor.created_by)) return false;
+      if (allContactEmails  !== null && !allContactEmails.has(doctor.created_by))  return false;
 
       const matchesSearch = searchQuery === '' ||
         doctor.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -481,9 +461,8 @@ export default function Network() {
 
   const uniqueLocations = [...new Set(doctors.map(d => d.location_city).filter(Boolean))];
 
-  const totalContacts = new Set(groups.flatMap(g => g.members.map(m => m.user_id))).size;
+  const totalContacts = new Set(groups.flatMap(g => g.members.map(m => m.email))).size;
 
-  // Active filter label for the contacts button
   const activeGroupLabel = selectedGroupId !== null
     ? groups.find(g => g.id === selectedGroupId)?.name
     : contactsOpen ? 'All contacts' : null;
@@ -516,7 +495,6 @@ export default function Network() {
                 />
               </div>
 
-              {/* My Contacts button */}
               <Button
                 variant={contactsOpen ? "default" : "outline"}
                 className={`gap-2 ${contactsOpen ? 'bg-teal-500 hover:bg-teal-600 text-white' : ''}`}
@@ -534,7 +512,6 @@ export default function Network() {
                 )}
               </Button>
 
-              {/* Filters sheet — unchanged from original */}
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="gap-2">
@@ -609,7 +586,6 @@ export default function Network() {
             </div>
           </div>
 
-          {/* Active filter pills */}
           {(selectedSpecialty !== 'All Specialties' || selectedLocation || activeGroupLabel) && (
             <div className="flex flex-wrap gap-2 mt-4">
               {activeGroupLabel && (
@@ -638,7 +614,6 @@ export default function Network() {
       {/* ── Layout: sidebar + grid ── */}
       <div className="max-w-7xl mx-auto px-4 py-8 flex gap-6">
 
-        {/* Contacts sidebar */}
         {contactsOpen && (
           <aside className="w-64 flex-shrink-0">
             <div className="bg-white border border-slate-100 rounded-2xl p-4 sticky top-28 min-h-[400px] flex flex-col">
@@ -656,7 +631,6 @@ export default function Network() {
           </aside>
         )}
 
-        {/* Doctor grid */}
         <div className="flex-1 min-w-0">
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -698,7 +672,6 @@ export default function Network() {
             </div>
           ) : (
             <>
-              {/* Result count */}
               <p className="text-sm text-slate-500 mb-4">
                 {filteredAndSortedDoctors.length} doctor{filteredAndSortedDoctors.length !== 1 ? 's' : ''}
                 {activeGroupLabel ? ` in "${activeGroupLabel}"` : ''}
@@ -711,7 +684,6 @@ export default function Network() {
                       onMessage={() => startConversation(doctor)}
                       isOnline={doctor.online_status === 'online'}
                     />
-                    {/* Add-to-group overlay button */}
                     {user && groups.length >= 0 && (
                       <div className="absolute top-3 right-3">
                         <AddToGroupPopover
@@ -730,7 +702,6 @@ export default function Network() {
         </div>
       </div>
 
-      {/* ── Group create / rename dialog ── */}
       <GroupFormDialog
         open={groupFormOpen}
         onClose={() => { setGroupFormOpen(false); setEditingGroup(null); }}

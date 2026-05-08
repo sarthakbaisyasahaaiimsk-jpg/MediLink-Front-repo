@@ -403,14 +403,23 @@ function MobileChatList({
 }
 
 function MobileChatView({
-  selectedConversation, messages, loadingMessages, user, profile,
-  other, e2eReady, sharedKey, messagesEndRef,
-  onBack, onGroupInfoOpen, onSend, isSending,
+  selectedConversation,
+  messages,
+  loadingMessages,
+  user,
+  profile,
+  other,
+  e2eReady,
+  sharedKey,
+  messagesEndRef,
+  onBack,
+  onGroupInfoOpen,
+  onSend,
+  isSending,
 }) {
   return (
-    // FIX 1: 100dvh shrinks when keyboard opens, input stays visible
     <div className="flex flex-col w-full bg-white" style={{ height: '100dvh' }}>
-
+ 
       {/* Header */}
       <div className="shrink-0 bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={onBack}>
@@ -426,7 +435,6 @@ function MobileChatView({
             }
           </div>
         )}
-        {/* FIX 2: min-w-0 stops the name from pushing the header wider than the screen */}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-slate-800 truncate text-sm">{other.name}</p>
           {selectedConversation.is_group ? (
@@ -451,16 +459,17 @@ function MobileChatView({
           </Button>
         </div>
       </div>
-
-      {/* Messages area */}
-      {/* FIX 2: overflowX hidden stops any message bubble expanding the container sideways */}
-      {/* FIX 3: willChange + overscrollBehavior for GPU-composited smooth scroll */}
+ 
+      {/* Messages — flex-1, stops scrolling bleeding to page body */}
       <div
         className="flex-1 overflow-y-auto p-3 space-y-2"
         style={{
           overflowX: 'hidden',
           willChange: 'transform',
           overscrollBehaviorY: 'contain',
+          // FIX: bottom padding = nav bar height so last message isn't
+          // hidden behind the bottom nav bar
+          paddingBottom: '72px',
           backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23e2e8f0\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
         }}
       >
@@ -484,12 +493,18 @@ function MobileChatView({
         )}
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Input — stays above keyboard because dvh already accounts for it */}
-      {/* FIX 1: env(safe-area-inset-bottom) pads above iPhone home bar */}
+ 
+      {/* FIX: position the input above the bottom nav bar.
+          - `bottom-14` = 56px = height of BottomNav
+          - `z-40` keeps it below modals (z-50) but above messages
+          - left-0 right-0 makes it full width
+          - env(safe-area-inset-bottom) pads above iPhone home bar        */}
       <div
-        className="shrink-0 bg-white border-t border-slate-200 p-2"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        className="fixed left-0 right-0 bg-white border-t border-slate-200 z-40"
+        style={{
+          bottom: '56px',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
         <ChatInput
           onSend={onSend}
@@ -503,7 +518,6 @@ function MobileChatView({
     </div>
   );
 }
-
 // ══════════════════════════════════════════════════════════════════════════════
 // ── Main Export ───────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════

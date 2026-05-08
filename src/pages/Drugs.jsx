@@ -1,12 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Search, Pill, ChevronDown, ChevronUp, AlertTriangle, Zap, FlaskConical, Shield, BookOpen, Thermometer, X } from 'lucide-react';
+import { Search, Pill, ChevronDown, ChevronUp, AlertTriangle, Zap, FlaskConical, Shield, BookOpen, Thermometer, X, Database } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import * as apiClient from '@/api/client';
 import Layout from "@/Layout";
 
 // ── Bullet list renderer ──────────────────────────────────
-// Backend now sends pre-parsed arrays — no client-side parsing needed.
+// Backend sends pre-parsed arrays — no client-side parsing needed.
 function BulletList({ bullets, color = "teal" }) {
   const dotColor = {
     teal:   "bg-teal-400",
@@ -43,7 +43,7 @@ function Section({ icon: Icon, title, content, color = "teal", defaultOpen = fal
   const [open, setOpen] = useState(defaultOpen);
   if (!content) return null;
 
-  // content is now an array from the backend
+  // content is an array from the backend
   const bullets = Array.isArray(content)
     ? content
     : typeof content === "string" && content.trim()
@@ -116,6 +116,50 @@ function InteractionCard({ interaction }) {
   );
 }
 
+// ── Source badges ─────────────────────────────────────────
+// Shows which data sources contributed to this drug's information.
+function SourceBadges({ sources }) {
+  if (!sources || sources.length === 0) return null;
+  const colorMap = {
+    OpenFDA:  "bg-teal-50 text-teal-700 border-teal-100",
+    DailyMed: "bg-blue-50 text-blue-700 border-blue-100",
+    ChEMBL:   "bg-purple-50 text-purple-700 border-purple-100",
+  };
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <Database className="w-3 h-3 text-slate-400" />
+      {sources.map((s) => (
+        <span
+          key={s}
+          className={`text-xs px-2 py-0.5 rounded-full border ${colorMap[s] || "bg-slate-50 text-slate-600 border-slate-100"}`}
+        >
+          {s}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ── No-data notice ────────────────────────────────────────
+// Shown when all three sources returned nothing for a drug.
+// Helps the user understand it's a data gap, not a bug.
+function NoDataNotice({ name }) {
+  return (
+    <div className="mx-4 mt-4 mb-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex gap-3">
+      <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+      <div>
+        <p className="text-xs font-semibold text-amber-700 mb-1">Limited Data Available</p>
+        <p className="text-xs text-amber-600 leading-relaxed">
+          No detailed label information was found for <strong>{name}</strong> in OpenFDA,
+          DailyMed, or ChEMBL at this time. This may be because the drug is not yet
+          approved in the US, uses a different name in these databases, or data is
+          temporarily unavailable. Try searching by the generic (INN) name.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Drug detail panel ─────────────────────────────────────
 function DrugDetail({ drug, onClose }) {
   if (!drug) return null;
@@ -151,7 +195,16 @@ function DrugDetail({ drug, onClose }) {
         {drug.manufacturer && (
           <p className="text-teal-100 text-xs mt-3">Manufacturer: {drug.manufacturer}</p>
         )}
+        {/* Source badges in header */}
+        {drug._sources?.length > 0 && (
+          <div className="mt-3">
+            <SourceBadges sources={drug._sources} />
+          </div>
+        )}
       </div>
+
+      {/* No data notice */}
+      {drug.no_data && <NoDataNotice name={drug.generic_name || drug.name || "this drug"} />}
 
       {/* Boxed warning */}
       {drug.warnings_boxed && (
@@ -195,20 +248,20 @@ function DrugDetail({ drug, onClose }) {
 
       {/* Sections */}
       <div className="p-4 flex flex-col gap-3">
-        <Section icon={Pill}         title="Indications & Usage"        content={drug.indications}             color="teal"   defaultOpen={true} />
-        <Section icon={BookOpen}     title="Dosage & Administration"    content={drug.dosage_administration}   color="blue" />
-        <Section icon={Zap}          title="Mechanism of Action"        content={drug.mechanism}               color="purple" />
-        <Section icon={FlaskConical} title="Pharmacodynamics"           content={drug.pharmacodynamics}        color="purple" />
-        <Section icon={FlaskConical} title="Clinical Pharmacology"      content={drug.pharmacokinetics}        color="purple" />
-        <Section icon={AlertTriangle} title="Warnings & Precautions"    content={drug.warnings}               color="amber" />
-        <Section icon={Shield}       title="Contraindications"          content={drug.contraindications}       color="red" />
-        <Section icon={Thermometer}  title="Adverse Reactions"          content={drug.adverse_reactions}       color="amber" />
-        <Section icon={AlertTriangle} title="Drug Interactions"         content={drug.drug_interactions}       color="amber" />
-        <Section icon={AlertTriangle} title="Overdosage"                content={drug.overdosage}             color="red" />
-        <Section icon={Shield}       title="Pregnancy"                  content={drug.pregnancy}               color="blue" />
-        <Section icon={Shield}       title="Pediatric Use"              content={drug.pediatric_use}           color="blue" />
-        <Section icon={Shield}       title="Geriatric Use"              content={drug.geriatric_use}           color="blue" />
-        <Section icon={BookOpen}     title="Storage & Handling"         content={drug.storage}                 color="slate" />
+        <Section icon={Pill}          title="Indications & Usage"        content={drug.indications}             color="teal"   defaultOpen={true} />
+        <Section icon={BookOpen}      title="Dosage & Administration"    content={drug.dosage_administration}   color="blue" />
+        <Section icon={Zap}           title="Mechanism of Action"        content={drug.mechanism}               color="purple" />
+        <Section icon={FlaskConical}  title="Pharmacodynamics"           content={drug.pharmacodynamics}        color="purple" />
+        <Section icon={FlaskConical}  title="Clinical Pharmacology"      content={drug.pharmacokinetics}        color="purple" />
+        <Section icon={AlertTriangle} title="Warnings & Precautions"     content={drug.warnings}               color="amber" />
+        <Section icon={Shield}        title="Contraindications"          content={drug.contraindications}       color="red" />
+        <Section icon={Thermometer}   title="Adverse Reactions"          content={drug.adverse_reactions}       color="amber" />
+        <Section icon={AlertTriangle} title="Drug Interactions"          content={drug.drug_interactions}       color="amber" />
+        <Section icon={AlertTriangle} title="Overdosage"                 content={drug.overdosage}             color="red" />
+        <Section icon={Shield}        title="Pregnancy"                  content={drug.pregnancy}               color="blue" />
+        <Section icon={Shield}        title="Pediatric Use"              content={drug.pediatric_use}           color="blue" />
+        <Section icon={Shield}        title="Geriatric Use"              content={drug.geriatric_use}           color="blue" />
+        <Section icon={BookOpen}      title="Storage & Handling"         content={drug.storage}                 color="slate" />
 
         {/* RxNorm interactions */}
         {drug.rxnorm_interactions?.length > 0 && (
@@ -227,7 +280,7 @@ function DrugDetail({ drug, onClose }) {
 
       <div className="px-4 pb-4">
         <p className="text-xs text-slate-400 leading-relaxed">
-          Data sourced from OpenFDA and RxNorm (US National Library of Medicine).
+          Data sourced from OpenFDA, DailyMed, and RxNorm (US National Library of Medicine) and ChEMBL (EMBL-EBI).
           For clinical decisions, always verify with current prescribing information.
         </p>
       </div>
@@ -259,6 +312,7 @@ export default function Drugs() {
   const COMMON_DRUGS = [
     "Paracetamol", "Amoxicillin", "Metformin", "Atorvastatin",
     "Omeprazole", "Amlodipine", "Azithromycin", "Ibuprofen",
+    "Methotrexate", "Warfarin",
   ];
 
   const searchDrugs = useCallback(async (q) => {
@@ -296,6 +350,7 @@ export default function Drugs() {
       const detail = await apiClient.drugs.detail(drug.name, drug.rxcui);
       setSelectedDrug({ ...drug, ...detail });
     } catch {
+      // Even on error, show what we have from the search result
       setSelectedDrug(drug);
     } finally {
       setDetailLoading(false);
@@ -316,12 +371,14 @@ export default function Drugs() {
                   Drug Database
                 </h1>
                 <p className="text-slate-500 mt-1 text-sm">
-                  Search drug information from OpenFDA & RxNorm
+                  Search drug information from OpenFDA, DailyMed, RxNorm & ChEMBL
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs bg-teal-50 text-teal-700 px-3 py-1 rounded-full border border-teal-100">OpenFDA</span>
                 <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">RxNorm</span>
+                <span className="text-xs bg-sky-50 text-sky-700 px-3 py-1 rounded-full border border-sky-100">DailyMed</span>
+                <span className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full border border-purple-100">ChEMBL</span>
               </div>
             </div>
 
@@ -416,7 +473,7 @@ export default function Drugs() {
                     <Pill className="w-8 h-8 text-slate-400" />
                   </div>
                   <p className="text-slate-600 font-medium text-sm">No results found</p>
-                  <p className="text-slate-400 text-xs mt-1">Try a generic name or active ingredient</p>
+                  <p className="text-slate-400 text-xs mt-1">Try a generic (INN) name or active ingredient</p>
                 </div>
               )}
             </div>
@@ -425,9 +482,10 @@ export default function Drugs() {
             <div className="md:col-span-2">
               {detailLoading && (
                 <div className="bg-white rounded-2xl border border-slate-100 p-8 flex items-center justify-center">
-                  <div className="flex items-center gap-3 text-slate-400">
+                  <div className="flex flex-col items-center gap-3 text-slate-400">
                     <div className="w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
                     <span className="text-sm">Loading drug information…</span>
+                    <span className="text-xs text-slate-300">Fetching from OpenFDA, DailyMed & ChEMBL in parallel</span>
                   </div>
                 </div>
               )}

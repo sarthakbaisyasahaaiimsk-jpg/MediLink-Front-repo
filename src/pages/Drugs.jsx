@@ -1,66 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Search, Pill, ChevronDown, ChevronUp, AlertTriangle, Zap, FlaskConical, Shield, BookOpen, Thermometer, X, Circle } from 'lucide-react';
+import { Search, Pill, ChevronDown, ChevronUp, AlertTriangle, Zap, FlaskConical, Shield, BookOpen, Thermometer, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import * as apiClient from '@/api/client';
 import Layout from "@/Layout";
 
-// ── Smart content parser ──────────────────────────────────
-/**
- * Converts raw FDA label text into a clean array of bullet strings.
- * Handles:
- *  - Already-bulleted lines (•, -, *, numbers)
- *  - Sentences separated by ". "
- *  - Sections split by newlines
- *  - Removes empty lines and very short fragments
- */
-function parseIntoBullets(text) {
-  if (!text || typeof text !== "string") return [];
-
-  // Normalise line endings
-  const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-  // Split on newlines first
-  const lines = normalized
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  const bullets = [];
-
-  for (const line of lines) {
-    // Already a bullet/numbered line — strip the marker and keep
-    const stripped = line.replace(/^[\u2022\-\*\u00b7\u25cf]\s*/, "").replace(/^\d+[\.\)]\s*/, "").trim();
-    if (!stripped) continue;
-
-    // If the line is long prose (> 120 chars), try splitting into sentences
-    if (stripped.length > 120 && !stripped.match(/^[A-Z][^.!?]*:$/)) {
-      // Split on ". " but keep sentences that are meaningful (> 20 chars)
-      const sentences = stripped
-        .split(/(?<=[.!?])\s+(?=[A-Z])/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 20);
-
-      if (sentences.length > 1) {
-        bullets.push(...sentences);
-        continue;
-      }
-    }
-
-    bullets.push(stripped);
-  }
-
-  // Deduplicate while preserving order
-  const seen = new Set();
-  return bullets.filter((b) => {
-    const key = b.toLowerCase().slice(0, 60);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 // ── Bullet list renderer ──────────────────────────────────
+// Backend now sends pre-parsed arrays — no client-side parsing needed.
 function BulletList({ bullets, color = "teal" }) {
   const dotColor = {
     teal:   "bg-teal-400",
@@ -71,11 +17,18 @@ function BulletList({ bullets, color = "teal" }) {
     slate:  "bg-slate-400",
   }[color] || "bg-teal-400";
 
-  if (!bullets || bullets.length === 0) return null;
+  // Accept both arrays (new backend) and strings (fallback)
+  const items = Array.isArray(bullets)
+    ? bullets
+    : typeof bullets === "string" && bullets.trim()
+    ? [bullets]
+    : [];
+
+  if (items.length === 0) return null;
 
   return (
     <ul className="mt-3 flex flex-col gap-2">
-      {bullets.map((b, i) => (
+      {items.map((b, i) => (
         <li key={i} className="flex items-start gap-2.5">
           <span className={`mt-[6px] w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
           <span className="text-sm text-slate-700 leading-relaxed">{b}</span>
@@ -90,7 +43,14 @@ function Section({ icon: Icon, title, content, color = "teal", defaultOpen = fal
   const [open, setOpen] = useState(defaultOpen);
   if (!content) return null;
 
-  const bullets = parseIntoBullets(content);
+  // content is now an array from the backend
+  const bullets = Array.isArray(content)
+    ? content
+    : typeof content === "string" && content.trim()
+    ? [content]
+    : [];
+
+  if (bullets.length === 0) return null;
 
   const colorMap = {
     teal:   "bg-teal-50 text-teal-700 border-teal-100",
@@ -110,12 +70,9 @@ function Section({ icon: Icon, title, content, color = "teal", defaultOpen = fal
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" />
           <span className="text-sm font-medium">{title}</span>
-          {/* bullet count badge */}
-          {bullets.length > 0 && (
-            <span className="text-xs opacity-60 font-normal">
-              ({bullets.length} {bullets.length === 1 ? "point" : "points"})
-            </span>
-          )}
+          <span className="text-xs opacity-60 font-normal">
+            ({bullets.length} {bullets.length === 1 ? "point" : "points"})
+          </span>
         </div>
         {open
           ? <ChevronUp className="w-4 h-4 opacity-50" />
@@ -124,13 +81,7 @@ function Section({ icon: Icon, title, content, color = "teal", defaultOpen = fal
 
       {open && (
         <div className="px-4 pb-4 border-t border-current border-opacity-10">
-          {bullets.length > 0
-            ? <BulletList bullets={bullets} color={color} />
-            : (
-              // Fallback for very short / unparseable content
-              <p className="text-sm leading-relaxed mt-3 text-slate-700">{content}</p>
-            )
-          }
+          <BulletList bullets={bullets} color={color} />
         </div>
       )}
     </div>
@@ -208,11 +159,7 @@ function DrugDetail({ drug, onClose }) {
           <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-red-700 mb-1">⚠ Boxed Warning</p>
-            {/* Boxed warnings are always bulleted — high stakes */}
-            <BulletList
-              bullets={parseIntoBullets(drug.warnings_boxed)}
-              color="red"
-            />
+            <BulletList bullets={drug.warnings_boxed} color="red" />
           </div>
         </div>
       )}
@@ -248,37 +195,29 @@ function DrugDetail({ drug, onClose }) {
 
       {/* Sections */}
       <div className="p-4 flex flex-col gap-3">
-
-        {/* Basic */}
-        <Section icon={Pill}      title="Indications & Usage"        content={drug.indications}             color="teal"   defaultOpen={true} />
-        <Section icon={BookOpen}  title="Dosage & Administration"    content={drug.dosage_administration}   color="blue" />
-
-        {/* Clinical */}
-        <Section icon={Zap}         title="Mechanism of Action"      content={drug.mechanism}               color="purple" />
-        <Section icon={FlaskConical} title="Pharmacodynamics"        content={drug.pharmacodynamics}        color="purple" />
-        <Section icon={FlaskConical} title="Clinical Pharmacology"   content={drug.pharmacokinetics}        color="purple" />
-
-        {/* Safety */}
-        <Section icon={AlertTriangle} title="Warnings & Precautions" content={drug.warnings}               color="amber" />
-        <Section icon={Shield}        title="Contraindications"      content={drug.contraindications}       color="red" />
-        <Section icon={Thermometer}   title="Adverse Reactions"      content={drug.adverse_reactions}       color="amber" />
-        <Section icon={AlertTriangle} title="Drug Interactions"      content={drug.drug_interactions}       color="amber" />
-        <Section icon={AlertTriangle} title="Overdosage"             content={drug.overdosage}              color="red" />
-
-        {/* Special populations */}
-        <Section icon={Shield}   title="Pregnancy"                   content={drug.pregnancy}               color="blue" />
-        <Section icon={Shield}   title="Pediatric Use"               content={drug.pediatric_use}           color="blue" />
-        <Section icon={Shield}   title="Geriatric Use"               content={drug.geriatric_use}           color="blue" />
-        <Section icon={BookOpen} title="Storage & Handling"          content={drug.storage}                 color="slate" />
+        <Section icon={Pill}         title="Indications & Usage"        content={drug.indications}             color="teal"   defaultOpen={true} />
+        <Section icon={BookOpen}     title="Dosage & Administration"    content={drug.dosage_administration}   color="blue" />
+        <Section icon={Zap}          title="Mechanism of Action"        content={drug.mechanism}               color="purple" />
+        <Section icon={FlaskConical} title="Pharmacodynamics"           content={drug.pharmacodynamics}        color="purple" />
+        <Section icon={FlaskConical} title="Clinical Pharmacology"      content={drug.pharmacokinetics}        color="purple" />
+        <Section icon={AlertTriangle} title="Warnings & Precautions"    content={drug.warnings}               color="amber" />
+        <Section icon={Shield}       title="Contraindications"          content={drug.contraindications}       color="red" />
+        <Section icon={Thermometer}  title="Adverse Reactions"          content={drug.adverse_reactions}       color="amber" />
+        <Section icon={AlertTriangle} title="Drug Interactions"         content={drug.drug_interactions}       color="amber" />
+        <Section icon={AlertTriangle} title="Overdosage"                content={drug.overdosage}             color="red" />
+        <Section icon={Shield}       title="Pregnancy"                  content={drug.pregnancy}               color="blue" />
+        <Section icon={Shield}       title="Pediatric Use"              content={drug.pediatric_use}           color="blue" />
+        <Section icon={Shield}       title="Geriatric Use"              content={drug.geriatric_use}           color="blue" />
+        <Section icon={BookOpen}     title="Storage & Handling"         content={drug.storage}                 color="slate" />
 
         {/* RxNorm interactions */}
-        {drug.interactions?.length > 0 && (
+        {drug.rxnorm_interactions?.length > 0 && (
           <div>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              Drug-Drug Interactions ({drug.interactions.length})
+              Drug-Drug Interactions ({drug.rxnorm_interactions.length})
             </p>
             <div className="flex flex-col gap-2">
-              {drug.interactions.map((ix, idx) => (
+              {drug.rxnorm_interactions.map((ix, idx) => (
                 <InteractionCard key={idx} interaction={ix} />
               ))}
             </div>
@@ -412,7 +351,6 @@ export default function Drugs() {
         {/* Body */}
         <div className="max-w-7xl mx-auto px-4 py-8">
 
-          {/* Common drug chips */}
           {!hasSearched && (
             <div className="mb-8">
               <p className="text-sm text-slate-500 mb-3 font-medium">Common searches</p>

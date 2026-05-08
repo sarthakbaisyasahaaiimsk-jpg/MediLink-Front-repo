@@ -29,7 +29,7 @@ function Avatar({ name, photo, size = 10 }) {
   );
 }
 
-// ── Contact Picker (shared between Create Group & Add Members) ───────────────
+// ── Contact Picker ───────────────────────────────────────────────────────────
 function ContactPicker({ contacts, alreadyAdded = [], onConfirm, onCancel, confirmLabel = 'Add' }) {
   const [selected, setSelected] = useState([]);
   const [search, setSearch] = useState('');
@@ -61,12 +61,10 @@ function ContactPicker({ contacts, alreadyAdded = [], onConfirm, onCancel, confi
           ))}
         </div>
       )}
-
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contacts..." className="pl-9 bg-slate-50" />
       </div>
-
       <div className="border border-slate-200 rounded-xl overflow-hidden">
         <ScrollArea className="h-48">
           {available.length === 0 ? (
@@ -99,7 +97,6 @@ function ContactPicker({ contacts, alreadyAdded = [], onConfirm, onCancel, confi
           )}
         </ScrollArea>
       </div>
-
       <div className="flex gap-2">
         <Button variant="outline" className="flex-1" onClick={onCancel}>Cancel</Button>
         <Button
@@ -183,7 +180,7 @@ function CreateGroupModal({ user, contacts, onClose, onCreated }) {
 
 // ── Group Info Panel ─────────────────────────────────────────────────────────
 function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onUpdate }) {
-  const [view, setView] = useState('info'); // 'info' | 'add'
+  const [view, setView] = useState('info');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -211,7 +208,6 @@ function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onU
       const newPhotos = participantPhotos.filter((_, i) => i !== idx);
       const newUnread = { ...(conversation.unread_count || {}) };
       delete newUnread[emailToRemove];
-
       const updated = await apiClient.entities.Conversation.update(conversation.id, {
         participants: newParticipants,
         participant_names: newNames,
@@ -233,7 +229,6 @@ function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onU
       const newEmails = selected.map(s => s.email);
       const newNames = selected.map(s => s.name);
       const newPhotos = selected.map(s => s.photo || null);
-
       const updated = await apiClient.entities.Conversation.update(conversation.id, {
         participants: [...participants, ...newEmails],
         participant_names: [...participantNames, ...newNames],
@@ -252,27 +247,19 @@ function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onU
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center">
       <div className="bg-white w-full md:max-w-sm md:rounded-2xl rounded-t-2xl shadow-xl flex flex-col max-h-[80vh]">
-
-        {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-slate-100 shrink-0">
           {view === 'add' ? (
-            <Button variant="ghost" size="icon" onClick={() => setView('info')}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setView('info')}><ArrowLeft className="w-4 h-4" /></Button>
           ) : (
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
           )}
           <h2 className="text-base font-semibold text-slate-800">
             {view === 'add' ? 'Add Members' : 'Group Info'}
           </h2>
         </div>
-
         <div className="overflow-y-auto flex-1 p-4">
           {view === 'info' ? (
             <div className="space-y-4">
-              {/* Group name & avatar */}
               <div className="flex flex-col items-center py-4 gap-2">
                 <div className="w-16 h-16 rounded-full bg-teal-500 flex items-center justify-center">
                   <Users className="w-8 h-8 text-white" />
@@ -280,8 +267,6 @@ function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onU
                 <p className="text-lg font-semibold text-slate-800">{conversation.group_name}</p>
                 <p className="text-sm text-slate-400">{participants.length} members</p>
               </div>
-
-              {/* Add members button */}
               <button
                 onClick={() => setView('add')}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
@@ -292,12 +277,10 @@ function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onU
                 <span className="text-sm font-medium text-teal-700">Add Members</span>
                 <ChevronRight className="w-4 h-4 text-slate-400 ml-auto" />
               </button>
-
-              {/* Member list */}
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Members</p>
                 <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  {memberList.map((member, i) => (
+                  {memberList.map((member) => (
                     <div
                       key={member.email}
                       className={cn(
@@ -317,7 +300,6 @@ function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onU
                           onClick={() => handleRemove(member.email)}
                           disabled={loading}
                           className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                          title="Remove member"
                         >
                           <UserMinus className="w-4 h-4" />
                         </button>
@@ -341,8 +323,190 @@ function GroupInfoPanel({ conversation, currentUserEmail, contacts, onClose, onU
     </div>
   );
 }
-// ────────────────────────────────────────────────────────────────────────────
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ── MOBILE LAYOUT COMPONENTS
+// Shown only on small screens (rendered conditionally, desktop uses hidden md:flex).
+//
+// Fix 1 — Keyboard breaks layout:
+//   height: 100dvh shrinks when the soft keyboard opens, unlike 100vh which
+//   stays fixed and causes the input to be hidden behind the keyboard.
+//   env(safe-area-inset-bottom) pads the input above iPhone home indicator.
+//
+// Fix 2 — ChatBody expands horizontally:
+//   overflowX: hidden on the scroll container + min-w-0 on flex children
+//   prevents long unbroken text / URLs from pushing the div wider than screen.
+//
+// Fix 3 — Large lists lag:
+//   willChange: transform promotes the scroll container to its own GPU layer.
+//   overscrollBehaviorY: contain stops scroll chaining to the page body.
+// ══════════════════════════════════════════════════════════════════════════════
+
+function MobileChatList({
+  profile, searchQuery, onSearchChange, loadingConversations,
+  filteredConversations, selectedConversationId, currentUserId,
+  onSelectConversation, onNewGroup,
+}) {
+  return (
+    // FIX 1: 100dvh instead of 100vh
+    <div className="flex flex-col w-full bg-white" style={{ height: '100dvh' }}>
+      <div className="shrink-0 p-4 bg-gradient-to-r from-teal-600 to-teal-500">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white">Messages</h1>
+            <p className="text-teal-100 text-sm">{profile?.full_name}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onNewGroup} className="text-white hover:bg-teal-700/50 rounded-full">
+            <Users className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="shrink-0 p-3 border-b border-slate-100">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            value={searchQuery}
+            onChange={e => onSearchChange(e.target.value)}
+            placeholder="Search conversations..."
+            className="pl-10 bg-slate-50 border-none"
+          />
+        </div>
+      </div>
+
+      {/* FIX 3: willChange + overscrollBehavior for smooth scrolling on long lists */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ willChange: 'transform', overscrollBehaviorY: 'contain' }}
+      >
+        {loadingConversations ? (
+          <div className="p-4 text-center text-slate-500">Loading...</div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">
+            <p className="mb-2">No conversations yet</p>
+            <p className="text-sm">Start by messaging a doctor from the Network page</p>
+          </div>
+        ) : (
+          filteredConversations.map(conversation => (
+            <ChatListItem
+              key={conversation.id}
+              conversation={conversation}
+              currentUserId={currentUserId}
+              isActive={selectedConversationId === conversation.id}
+              onClick={() => onSelectConversation(conversation)}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MobileChatView({
+  selectedConversation, messages, loadingMessages, user, profile,
+  other, e2eReady, sharedKey, messagesEndRef,
+  onBack, onGroupInfoOpen, onSend, isSending,
+}) {
+  return (
+    // FIX 1: 100dvh shrinks when keyboard opens, input stays visible
+    <div className="flex flex-col w-full bg-white" style={{ height: '100dvh' }}>
+
+      {/* Header */}
+      <div className="shrink-0 bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        {other.photo ? (
+          <img src={other.photo} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-teal-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+            {selectedConversation.is_group
+              ? <Users className="w-4 h-4" />
+              : other.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+            }
+          </div>
+        )}
+        {/* FIX 2: min-w-0 stops the name from pushing the header wider than the screen */}
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800 truncate text-sm">{other.name}</p>
+          {selectedConversation.is_group ? (
+            <p className="text-xs text-slate-400 truncate">{selectedConversation.participants?.length} members</p>
+          ) : (
+            <div className="flex items-center gap-1">
+              {e2eReady
+                ? <><ShieldCheck className="w-3 h-3 text-teal-500 shrink-0" /><p className="text-xs text-teal-600 truncate">End-to-end encrypted</p></>
+                : <><ShieldOff className="w-3 h-3 text-slate-400 shrink-0" /><p className="text-xs text-slate-400 truncate">Setting up encryption…</p></>
+              }
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Button variant="ghost" size="icon" className="text-slate-500 w-8 h-8"><Phone className="w-4 h-4" /></Button>
+          <Button variant="ghost" size="icon" className="text-slate-500 w-8 h-8"><Video className="w-4 h-4" /></Button>
+          <Button
+            variant="ghost" size="icon" className="text-slate-500 w-8 h-8"
+            onClick={() => selectedConversation.is_group && onGroupInfoOpen()}
+          >
+            <MoreVertical className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Messages area */}
+      {/* FIX 2: overflowX hidden stops any message bubble expanding the container sideways */}
+      {/* FIX 3: willChange + overscrollBehavior for GPU-composited smooth scroll */}
+      <div
+        className="flex-1 overflow-y-auto p-3 space-y-2"
+        style={{
+          overflowX: 'hidden',
+          willChange: 'transform',
+          overscrollBehaviorY: 'contain',
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23e2e8f0\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+        }}
+      >
+        {loadingMessages ? (
+          <div className="text-center text-slate-500 pt-8">Loading messages...</div>
+        ) : messages.length === 0 ? (
+          <div className="text-center text-slate-500 py-8">
+            <p>No messages yet</p>
+            <p className="text-sm">Say hello to start the conversation!</p>
+          </div>
+        ) : (
+          messages.map((message) => (
+            <DecryptedMessage
+              key={message.id}
+              message={message}
+              isOwn={message.sender_id === user?.email}
+              showSender={selectedConversation.is_group && message.sender_id !== user?.email}
+              sharedKey={sharedKey}
+            />
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input — stays above keyboard because dvh already accounts for it */}
+      {/* FIX 1: env(safe-area-inset-bottom) pads above iPhone home bar */}
+      <div
+        className="shrink-0 bg-white border-t border-slate-200 p-2"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+      >
+        <ChatInput
+          onSend={onSend}
+          disabled={isSending}
+          conversationId={selectedConversation?.id}
+          currentUserId={user?.email}
+          senderName={profile?.full_name || user?.full_name}
+          senderPhoto={profile?.profile_photo}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Main Export ───────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
 export default function Chats() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -398,11 +562,7 @@ export default function Chats() {
       const email = c.participants?.[idx];
       if (!email || seen.has(email)) return;
       seen.add(email);
-      result.push({
-        email,
-        name: c.participant_names?.[idx] || email,
-        photo: c.participant_photos?.[idx] || null,
-      });
+      result.push({ email, name: c.participant_names?.[idx] || email, photo: c.participant_photos?.[idx] || null });
     });
     return result;
   }, [conversations, user?.email]);
@@ -410,10 +570,7 @@ export default function Chats() {
   useEffect(() => {
     if (conversationIdFromUrl && conversations.length > 0) {
       const convo = conversations.find(c => c.id === conversationIdFromUrl);
-      if (convo) {
-        setSelectedConversation(convo);
-        setShowChatList(false);
-      }
+      if (convo) { setSelectedConversation(convo); setShowChatList(false); }
     }
   }, [conversationIdFromUrl, conversations]);
 
@@ -527,9 +684,12 @@ export default function Chats() {
   const other = selectedConversation ? getConversationDisplay(selectedConversation) : { name: '', photo: null };
   const initials = other.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
+  const handleSend = (data) =>
+    sendMessageMutation.mutate({ ...data, conversation_id: selectedConversation.id });
+
   return (
-    <div className="h-screen flex bg-slate-100">
-      {/* Modals */}
+    <>
+      {/* Modals — shared between mobile & desktop */}
       {showCreateGroup && (
         <CreateGroupModal
           user={user}
@@ -542,7 +702,6 @@ export default function Chats() {
           }}
         />
       )}
-
       {showGroupInfo && selectedConversation?.is_group && (
         <GroupInfoPanel
           conversation={selectedConversation}
@@ -556,180 +715,212 @@ export default function Chats() {
         />
       )}
 
-      {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
-      <div className={cn('w-full md:w-96 bg-white border-r border-slate-200 flex flex-col md:flex', !showChatList && 'hidden md:flex')}>
-        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-teal-600 to-teal-500 shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-white">Messages</h1>
-              <p className="text-teal-100 text-sm">{profile?.full_name}</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setShowCreateGroup(true)} className="text-white hover:bg-teal-700/50 rounded-full" title="New Group Chat">
-              <Users className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="p-3 border-b border-slate-100 shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search conversations..." className="pl-10 bg-slate-50 border-none" />
-          </div>
-        </div>
-
-        <ScrollArea className="flex-1">
-          {loadingConversations ? (
-            <div className="p-4 text-center text-slate-500">Loading...</div>
-          ) : filteredConversations.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              <p className="mb-2">No conversations yet</p>
-              <p className="text-sm">Start by messaging a doctor from the Network page</p>
-            </div>
-          ) : (
-            filteredConversations.map(conversation => (
-              <ChatListItem
-                key={conversation.id}
-                conversation={conversation}
-                currentUserId={user?.email}
-                isActive={selectedConversation?.id === conversation.id}
-                onClick={() => { setSelectedConversation(conversation); setShowChatList(false); }}
-              />
-            ))
-          )}
-        </ScrollArea>
+      {/* ══════════════════════════════════════════════════════════════════
+          MOBILE LAYOUT — visible below md breakpoint only
+          All three fixes are isolated here. Desktop code below is untouched.
+         ══════════════════════════════════════════════════════════════════ */}
+      <div className="md:hidden">
+        {showChatList ? (
+          <MobileChatList
+            profile={profile}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            loadingConversations={loadingConversations}
+            filteredConversations={filteredConversations}
+            selectedConversationId={selectedConversation?.id}
+            currentUserId={user?.email}
+            onSelectConversation={(convo) => { setSelectedConversation(convo); setShowChatList(false); }}
+            onNewGroup={() => setShowCreateGroup(true)}
+          />
+        ) : selectedConversation ? (
+          <MobileChatView
+            selectedConversation={selectedConversation}
+            messages={messages}
+            loadingMessages={loadingMessages}
+            user={user}
+            profile={profile}
+            other={other}
+            e2eReady={e2eReady}
+            sharedKey={sharedKey}
+            messagesEndRef={messagesEndRef}
+            onBack={() => setShowChatList(true)}
+            onGroupInfoOpen={() => setShowGroupInfo(true)}
+            onSend={handleSend}
+            isSending={sendMessageMutation.isPending}
+          />
+        ) : null}
       </div>
 
-      {/* ── Main Panel ───────────────────────────────────────────────────────── */}
-      <div className={cn('flex-1 flex flex-col', showChatList && 'hidden md:flex')}>
-        {selectedConversation ? (
-          <>
-            {/* Header */}
-            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 shrink-0">
-              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setShowChatList(true)}>
-                <ArrowLeft className="w-5 h-5" />
+      {/* ══════════════════════════════════════════════════════════════════
+          DESKTOP LAYOUT — hidden on mobile, your original code unchanged
+         ══════════════════════════════════════════════════════════════════ */}
+      <div className="hidden md:flex h-screen bg-slate-100">
+        {/* Sidebar */}
+        <div className={cn('w-full md:w-96 bg-white border-r border-slate-200 flex flex-col md:flex', !showChatList && 'hidden md:flex')}>
+          <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-teal-600 to-teal-500 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold text-white">Messages</h1>
+                <p className="text-teal-100 text-sm">{profile?.full_name}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowCreateGroup(true)} className="text-white hover:bg-teal-700/50 rounded-full" title="New Group Chat">
+                <Users className="w-5 h-5" />
               </Button>
+            </div>
+          </div>
+          <div className="p-3 border-b border-slate-100 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search conversations..." className="pl-10 bg-slate-50 border-none" />
+            </div>
+          </div>
+          <ScrollArea className="flex-1">
+            {loadingConversations ? (
+              <div className="p-4 text-center text-slate-500">Loading...</div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                <p className="mb-2">No conversations yet</p>
+                <p className="text-sm">Start by messaging a doctor from the Network page</p>
+              </div>
+            ) : (
+              filteredConversations.map(conversation => (
+                <ChatListItem
+                  key={conversation.id}
+                  conversation={conversation}
+                  currentUserId={user?.email}
+                  isActive={selectedConversation?.id === conversation.id}
+                  onClick={() => { setSelectedConversation(conversation); setShowChatList(false); }}
+                />
+              ))
+            )}
+          </ScrollArea>
+        </div>
 
-              {other.photo ? (
-                <img src={other.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-semibold text-sm">
-                  {selectedConversation.is_group ? <Users className="w-5 h-5" /> : initials}
-                </div>
-              )}
-
-              <div className="flex-1 min-w-0">
-                <h2 className="font-semibold text-slate-800 truncate">{other.name}</h2>
-                {selectedConversation.is_group ? (
-                  <p className="text-xs text-slate-400">{selectedConversation.participants?.length} members · tap ⋮ to manage</p>
+        {/* Main Panel */}
+        <div className={cn('flex-1 flex flex-col', showChatList && 'hidden md:flex')}>
+          {selectedConversation ? (
+            <>
+              <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 shrink-0">
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setShowChatList(true)}>
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                {other.photo ? (
+                  <img src={other.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
                 ) : (
-                  <div className="flex items-center gap-1">
-                    {e2eReady ? (
-                      <><ShieldCheck className="w-3 h-3 text-teal-500" /><p className="text-xs text-teal-600 font-medium">End-to-end encrypted</p></>
-                    ) : (
-                      <><ShieldOff className="w-3 h-3 text-slate-400" /><p className="text-xs text-slate-400">Setting up encryption…</p></>
-                    )}
+                  <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-semibold text-sm">
+                    {selectedConversation.is_group ? <Users className="w-5 h-5" /> : initials}
                   </div>
                 )}
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-semibold text-slate-800 truncate">{other.name}</h2>
+                  {selectedConversation.is_group ? (
+                    <p className="text-xs text-slate-400">{selectedConversation.participants?.length} members · tap ⋮ to manage</p>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      {e2eReady ? (
+                        <><ShieldCheck className="w-3 h-3 text-teal-500" /><p className="text-xs text-teal-600 font-medium">End-to-end encrypted</p></>
+                      ) : (
+                        <><ShieldOff className="w-3 h-3 text-slate-400" /><p className="text-xs text-slate-400">Setting up encryption…</p></>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="text-slate-500"><Phone className="w-5 h-5" /></Button>
+                  <Button variant="ghost" size="icon" className="text-slate-500"><Video className="w-5 h-5" /></Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    className={cn('text-slate-500', selectedConversation.is_group && 'hover:bg-teal-50 hover:text-teal-600')}
+                    onClick={() => selectedConversation.is_group && setShowGroupInfo(true)}
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="text-slate-500"><Phone className="w-5 h-5" /></Button>
-                <Button variant="ghost" size="icon" className="text-slate-500"><Video className="w-5 h-5" /></Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn('text-slate-500', selectedConversation.is_group && 'hover:bg-teal-50 hover:text-teal-600')}
-                  onClick={() => selectedConversation.is_group && setShowGroupInfo(true)}
-                >
-                  <MoreVertical className="w-5 h-5" />
+              <div
+                className="flex-1 overflow-y-auto p-4 space-y-3 pb-24"
+                style={{
+                  backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23e2e8f0\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                }}
+              >
+                {loadingMessages ? (
+                  <div className="text-center text-slate-500">Loading messages...</div>
+                ) : messages.length === 0 ? (
+                  <div className="text-center text-slate-500 py-8">
+                    <p>No messages yet</p>
+                    <p className="text-sm">Say hello to start the conversation!</p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
+                    <DecryptedMessage
+                      key={message.id}
+                      message={message}
+                      isOwn={message.sender_id === user?.email}
+                      showSender={selectedConversation.is_group && message.sender_id !== user?.email}
+                      sharedKey={sharedKey}
+                    />
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <div className="sticky bottom-16 bg-white border-t p-2 z-40">
+                <ChatInput
+                  onSend={handleSend}
+                  disabled={sendMessageMutation.isPending}
+                  conversationId={selectedConversation?.id}
+                  currentUserId={user?.email}
+                  senderName={profile?.full_name || user?.full_name}
+                  senderPhoto={profile?.profile_photo}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+              <div className="text-center pt-10 pb-6 px-4 shrink-0">
+                <div className="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <MessageCircle className="w-10 h-10 text-slate-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-slate-700">Your Messages</h2>
+                <p className="mt-1 text-slate-500 text-sm">Select a conversation or start a new group</p>
+                <Button className="mt-4 bg-teal-600 hover:bg-teal-700 text-white gap-2" onClick={() => setShowCreateGroup(true)}>
+                  <Users className="w-4 h-4" />
+                  New Group Chat
                 </Button>
               </div>
-            </div>
-
-            {/* Messages */}
-            <div
-              className="flex-1 overflow-y-auto p-4 space-y-3 pb-24"
-              style={{
-                backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23e2e8f0\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-              }}
-            >
-              {loadingMessages ? (
-                <div className="text-center text-slate-500">Loading messages...</div>
-              ) : messages.length === 0 ? (
-                <div className="text-center text-slate-500 py-8">
-                  <p>No messages yet</p>
-                  <p className="text-sm">Say hello to start the conversation!</p>
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <DecryptedMessage
-                    key={message.id}
-                    message={message}
-                    isOwn={message.sender_id === user?.email}
-                    showSender={selectedConversation.is_group && message.sender_id !== user?.email}
-                    sharedKey={sharedKey}
-                  />
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="sticky bottom-16 bg-white border-t p-2 z-40">
-              <ChatInput
-                onSend={(data) => sendMessageMutation.mutate({ ...data, conversation_id: selectedConversation.id })}
-                disabled={sendMessageMutation.isPending}
-                conversationId={selectedConversation?.id}
-                currentUserId={user?.email}
-                senderName={profile?.full_name || user?.full_name}
-                senderPhoto={profile?.profile_photo}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
-            <div className="text-center pt-10 pb-6 px-4 shrink-0">
-              <div className="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <MessageCircle className="w-10 h-10 text-slate-400" />
-              </div>
-              <h2 className="text-xl font-semibold text-slate-700">Your Messages</h2>
-              <p className="mt-1 text-slate-500 text-sm">Select a conversation or start a new group</p>
-              <Button className="mt-4 bg-teal-600 hover:bg-teal-700 text-white gap-2" onClick={() => setShowCreateGroup(true)}>
-                <Users className="w-4 h-4" />
-                New Group Chat
-              </Button>
-            </div>
-
-            {contacts.length > 0 && (
-              <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 shrink-0">Contacts</p>
-                <div className="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white">
-                  {contacts.map((contact) => {
-                    const ini = contact.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-                    const convo = conversations.find(c => !c.is_group && c.participants?.includes(contact.email));
-                    return (
-                      <div
-                        key={contact.email}
-                        onClick={() => { if (convo) { setSelectedConversation(convo); setShowChatList(false); } }}
-                        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
-                      >
-                        {contact.photo
-                          ? <img src={contact.photo} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-                          : <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">{ini}</div>
-                        }
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-800 text-sm truncate">{contact.name}</p>
-                          <p className="text-xs text-slate-400 truncate">{contact.email}</p>
+              {contacts.length > 0 && (
+                <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 shrink-0">Contacts</p>
+                  <div className="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+                    {contacts.map((contact) => {
+                      const ini = contact.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                      const convo = conversations.find(c => !c.is_group && c.participants?.includes(contact.email));
+                      return (
+                        <div
+                          key={contact.email}
+                          onClick={() => { if (convo) { setSelectedConversation(convo); setShowChatList(false); } }}
+                          className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                        >
+                          {contact.photo
+                            ? <img src={contact.photo} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                            : <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">{ini}</div>
+                          }
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-800 text-sm truncate">{contact.name}</p>
+                            <p className="text-xs text-slate-400 truncate">{contact.email}</p>
+                          </div>
+                          <MessageCircle className="w-4 h-4 text-teal-400 shrink-0" />
                         </div>
-                        <MessageCircle className="w-4 h-4 text-teal-400 shrink-0" />
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

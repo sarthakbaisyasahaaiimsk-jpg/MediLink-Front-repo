@@ -463,4 +463,4 @@ export const entities = {
   References: references,
 };
 
-export default { auth, entities, zotero, contacts, news };
+export default { auth, entities, zotero, contacts, news , drugs };

@@ -27,7 +27,7 @@ import DoctorCard from '@/components/cards/DoctorCard';
 import { contacts as contactsApi } from '@/api/client';
 
 // ── Follows API helpers ────────────────────────────────────────────────────────
-const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+const getToken = () => localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
 
 const followsApi = {
   bulkStats: (userIds) =>

@@ -27,6 +27,7 @@ import DoctorCard from '@/components/cards/DoctorCard';
 import { contacts as contactsApi } from '@/api/client';
 
 // ── Follows API helpers ────────────────────────────────────────────────────────
+// FIX: use 'authToken' — that's the key your app actually stores the JWT under
 const getToken = () => localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
 
 const followsApi = {
@@ -75,7 +76,7 @@ function FollowButton({ doctor, followStats, onToggle }) {
     <Button
       size="sm"
       variant={isFollowing ? "default" : "outline"}
-      className={`gap-1.5 text-xs h-8 transition-all ${
+      className={`gap-1.5 text-xs h-8 transition-all flex-1 ${
         isFollowing
           ? 'bg-teal-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-white group'
           : 'hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
@@ -83,10 +84,16 @@ function FollowButton({ doctor, followStats, onToggle }) {
       onClick={() => onToggle(userId)}
       title={isFollowing ? 'Unfollow' : 'Follow'}
     >
-      {isFollowing
-        ? <><UserCheck className="w-3.5 h-3.5 group-hover:hidden" /><UserPlus className="w-3.5 h-3.5 hidden group-hover:block" /><span className="group-hover:hidden">Following</span><span className="hidden group-hover:inline">Unfollow</span></>
-        : <><UserPlus className="w-3.5 h-3.5" />Follow</>
-      }
+      {isFollowing ? (
+        <>
+          <UserCheck className="w-3.5 h-3.5 group-hover:hidden" />
+          <UserPlus  className="w-3.5 h-3.5 hidden group-hover:block" />
+          <span className="group-hover:hidden">Following</span>
+          <span className="hidden group-hover:inline">Unfollow</span>
+        </>
+      ) : (
+        <><UserPlus className="w-3.5 h-3.5" />Follow</>
+      )}
       {stats.follower_count > 0 && (
         <span className={`text-xs ml-0.5 ${isFollowing ? 'text-white/80' : 'text-slate-400'}`}>
           {stats.follower_count}
@@ -258,10 +265,13 @@ function AddToGroupPopover({ doctor, groups, onAdd, onRemove }) {
   const inAnyGroup = Object.keys(membershipMap).length > 0;
 
   return (
-    <div className="relative">
-      <Button size="sm" variant={inAnyGroup ? "default" : "outline"}
-        className={`gap-1.5 text-xs h-8 ${inAnyGroup ? 'bg-teal-500 hover:bg-teal-600 text-white' : ''}`}
-        onClick={() => setOpen(o => !o)}>
+    <div className="relative flex-1">
+      <Button
+        size="sm"
+        variant={inAnyGroup ? "default" : "outline"}
+        className={`gap-1.5 text-xs h-8 w-full ${inAnyGroup ? 'bg-teal-500 hover:bg-teal-600 text-white' : ''}`}
+        onClick={() => setOpen(o => !o)}
+      >
         <BookUser className="w-3.5 h-3.5" />
         {inAnyGroup ? 'In contacts' : 'Add to group'}
         <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -293,15 +303,17 @@ function AddToGroupPopover({ doctor, groups, onAdd, onRemove }) {
   );
 }
 
-// ── DoctorCardWrapper — adds Follow button + name click for public profile ─────
+// ── DoctorCardWrapper ──────────────────────────────────────────────────────────
+// FIX: action row moved BELOW the card so Follow + Add-to-group sit side by side
+// without overlapping the card content.
 function DoctorCardWrapper({ doctor, followStats, onToggleFollow, onMessage, groups, onAdd, onRemove, onViewProfile }) {
   const userId      = doctor.user_id;
   const stats       = userId ? (followStats[userId] || { is_following: false, follower_count: 0 }) : null;
   const isFollowing = stats?.is_following ?? false;
 
   return (
-    <div className="relative group/card">
-      {/* Followed star badge */}
+    <div className="relative group/card flex flex-col">
+      {/* Amber star badge for followed doctors */}
       {isFollowing && (
         <div className="absolute -top-1.5 -left-1.5 z-10">
           <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center shadow-sm">
@@ -310,6 +322,7 @@ function DoctorCardWrapper({ doctor, followStats, onToggleFollow, onMessage, gro
         </div>
       )}
 
+      {/* Card with optional amber ring when following */}
       <div className={`rounded-2xl transition-all duration-200 ${isFollowing ? 'ring-2 ring-amber-300/60 ring-offset-1' : ''}`}>
         <DoctorCard
           doctor={doctor}
@@ -319,12 +332,21 @@ function DoctorCardWrapper({ doctor, followStats, onToggleFollow, onMessage, gro
         />
       </div>
 
-      {/* Action row: follow + add-to-group */}
-      <div className="absolute top-3 right-3 flex items-center gap-1.5">
+      {/* Action row — below the card, both buttons visible side by side */}
+      <div className="flex items-center gap-2 mt-2 px-1">
         {userId && (
-          <FollowButton doctor={doctor} followStats={followStats} onToggle={onToggleFollow} />
+          <FollowButton
+            doctor={doctor}
+            followStats={followStats}
+            onToggle={onToggleFollow}
+          />
         )}
-        <AddToGroupPopover doctor={doctor} groups={groups} onAdd={onAdd} onRemove={onRemove} />
+        <AddToGroupPopover
+          doctor={doctor}
+          groups={groups}
+          onAdd={onAdd}
+          onRemove={onRemove}
+        />
       </div>
     </div>
   );
@@ -333,12 +355,11 @@ function DoctorCardWrapper({ doctor, followStats, onToggleFollow, onMessage, gro
 // ── PublicProfileModal ─────────────────────────────────────────────────────────
 function PublicProfileModal({ doctor, followStats, onToggleFollow, onMessage, onClose }) {
   if (!doctor) return null;
-  const userId      = doctor.user_id;
-  const stats       = userId ? (followStats[userId] || { is_following: false, follower_count: 0 }) : null;
-  const isFollowing = stats?.is_following ?? false;
+  const userId        = doctor.user_id;
+  const stats         = userId ? (followStats[userId] || { is_following: false, follower_count: 0 }) : null;
+  const isFollowing   = stats?.is_following ?? false;
   const followerCount = stats?.follower_count ?? 0;
-
-  const visibility = doctor.profile_visibility || 'public';
+  const visibility    = doctor.profile_visibility || 'public';
 
   return (
     <Dialog open={!!doctor} onOpenChange={onClose}>
@@ -384,7 +405,6 @@ function PublicProfileModal({ doctor, followStats, onToggleFollow, onMessage, on
                     {[doctor.location_city, doctor.location_country].filter(Boolean).join(', ')}
                   </p>
                 )}
-                {/* Follower count */}
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-xs text-slate-500">
                     <span className="font-semibold text-slate-700">{followerCount}</span> follower{followerCount !== 1 ? 's' : ''}
@@ -454,13 +474,21 @@ function PublicProfileModal({ doctor, followStats, onToggleFollow, onMessage, on
             <div className="flex gap-2 pt-1">
               {userId && (
                 <Button
-                  className={`flex-1 gap-2 ${isFollowing ? 'bg-teal-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-white' : 'bg-teal-500 hover:bg-teal-600 text-white'}`}
+                  className={`flex-1 gap-2 ${
+                    isFollowing
+                      ? 'bg-teal-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-white'
+                      : 'bg-teal-500 hover:bg-teal-600 text-white'
+                  }`}
                   onClick={() => onToggleFollow(userId)}
                 >
-                  {isFollowing ? <><UserCheck className="w-4 h-4" />Following</> : <><UserPlus className="w-4 h-4" />Follow</>}
+                  {isFollowing
+                    ? <><UserCheck className="w-4 h-4" />Following</>
+                    : <><UserPlus className="w-4 h-4" />Follow</>
+                  }
                 </Button>
               )}
-              <Button variant="outline" className="flex-1 gap-2" onClick={() => { onMessage(doctor); onClose(); }}>
+              <Button variant="outline" className="flex-1 gap-2"
+                onClick={() => { onMessage(doctor); onClose(); }}>
                 Message
               </Button>
             </div>
@@ -492,11 +520,8 @@ export default function Network() {
   const [groupFormOpen,   setGroupFormOpen]   = useState(false);
   const [editingGroup,    setEditingGroup]    = useState(null);
 
-  // Follow state
-  const [followStats, setFollowStats] = useState({}); // { [user_id]: { is_following, follower_count } }
-
-  // Profile modal
-  const [viewingDoctor, setViewingDoctor] = useState(null);
+  const [followStats,    setFollowStats]    = useState({});
+  const [viewingDoctor,  setViewingDoctor]  = useState(null);
 
   // ── Load current user ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -527,7 +552,6 @@ export default function Network() {
     if (!user || doctors.length === 0) return;
     const userIds = doctors.map(d => d.user_id).filter(Boolean);
     if (userIds.length === 0) return;
-
     followsApi.bulkStats(userIds).then(res => {
       if (res.stats) setFollowStats(res.stats);
     });
@@ -576,11 +600,6 @@ export default function Network() {
     navigate(`/chats?conversationId=${newConvo.id}`);
   };
 
-  // ── View profile ───────────────────────────────────────────────────────────
-  const handleViewProfile = (doctor) => {
-    setViewingDoctor(doctor);
-  };
-
   // ── Derived state ──────────────────────────────────────────────────────────
   const followingUserIds = new Set(
     Object.entries(followStats).filter(([, s]) => s.is_following).map(([id]) => Number(id))
@@ -613,7 +632,6 @@ export default function Network() {
     return matchesSearch && matchesSpecialty && matchesLocation;
   });
 
-  // Sort: followed doctors first, then by chosen sort
   const sortedDoctors = [...filteredDoctors].sort((a, b) => {
     const aFollowed = a.user_id && followingUserIds.has(a.user_id) ? 1 : 0;
     const bFollowed = b.user_id && followingUserIds.has(b.user_id) ? 1 : 0;
@@ -841,7 +859,7 @@ export default function Network() {
                     groups={groups}
                     onAdd={handleAddMember}
                     onRemove={handleRemoveMember}
-                    onViewProfile={handleViewProfile}
+                    onViewProfile={setViewingDoctor}
                   />
                 ))}
               </div>

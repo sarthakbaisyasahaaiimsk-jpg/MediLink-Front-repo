@@ -59,6 +59,9 @@ import Admin from './pages/Admin';
 import References from './pages/References';
 import __Layout from './Layout.jsx';
 import NewUpdates from './pages/NewUpdates';
+import Recruitment from './pages/Recruitment';
+import RecruitmentResponses from './pages/RecruitmentResponses';
+import MedMarket from './pages/MedMarket';
 
 
 export const PAGES = {
@@ -73,6 +76,9 @@ export const PAGES = {
     "Admin": Admin,
     "References": References,
     "Updates": NewUpdates,
+    "Recruitment": Recruitment,
+    "RecruitmentResponses": RecruitmentResponses,
+    "MedMarket": MedMarket,
 }
 
 export const pagesConfig = {

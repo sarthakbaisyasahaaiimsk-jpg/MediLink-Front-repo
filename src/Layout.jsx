@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import * as apiClient from '@/api/client';
 import { 
   Home, MessageCircle, Users, Briefcase, Calendar, User, Menu, X,
-  Stethoscope, BookOpen, Pill, MessageSquare, Rss, ClipboardList,
+  Stethoscope, BookOpen, Pill, MessageSquare, Rss, ClipboardList, BriefcaseBusiness, ShoppingBag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ const navItems = [
   { name: 'Drugs', icon: Pill, page: 'Drugs' },
   { name: 'References', icon: BookOpen, page: 'References' },
   { name: 'Updates', icon: Rss, page: 'Updates' }, 
+  { name: 'Recruitment', icon: BriefcaseBusiness, page: 'Recruitment' },
+  { name: 'MedMarket',   icon: ShoppingBag,       page: 'MedMarket'   },
   { name: 'Events', icon: Calendar, page: 'Events' },
   { name: 'Profile', icon: User, page: 'Profile' },
 ];

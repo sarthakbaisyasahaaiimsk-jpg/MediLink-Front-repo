@@ -1,12 +1,11 @@
 // API Configuration for Flask Backend
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://medilink-back-repo-1.onrender.com"; // <-- replace if needed
+  "https://medilink-back-repo-1.onrender.com";
 
 // Helper function for API requests with error handling
 async function apiCall(endpoint, options = {}) {
   const url = `${API_BASE_URL}/api${endpoint}`;
-
   const token = localStorage.getItem("authToken");
 
   const defaultHeaders = {
@@ -32,9 +31,7 @@ async function apiCall(endpoint, options = {}) {
   return response.json();
 }
 
-// ========================
 // FILE UPLOAD
-// ========================
 export const uploadFile = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -45,9 +42,7 @@ export const uploadFile = async (file) => {
     method: "POST",
     body: formData,
     headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
+      ? { Authorization: `Bearer ${token}` }
       : {},
   });
 
@@ -58,9 +53,7 @@ export const uploadFile = async (file) => {
   return response.json();
 };
 
-// ========================
 // AUTH
-// ========================
 export const auth = {
   me: async () => apiCall("/auth/me"),
 
@@ -70,7 +63,10 @@ export const auth = {
       body: JSON.stringify({ email, password }),
     });
 
-    if (data.token) localStorage.setItem("authToken", data.token);
+    if (data.token) {
+      localStorage.setItem("authToken", data.token);
+    }
+
     return data;
   },
 
@@ -115,15 +111,15 @@ export const auth = {
     }),
 };
 
-// ========================
 // DOCTOR PROFILE
-// ========================
 export const doctorProfile = {
   filter: async (filters = {}, sortBy = "") => {
     const queryParams = new URLSearchParams();
+
     Object.entries(filters || {}).forEach(([k, v]) =>
       queryParams.append(k, v)
     );
+
     if (sortBy) queryParams.append("sort", sortBy);
 
     return apiCall(`/doctor-profiles?${queryParams.toString()}`);
@@ -147,15 +143,15 @@ export const doctorProfile = {
     apiCall(`/doctor-profiles/${id}`, { method: "DELETE" }),
 };
 
-// ========================
 // PATIENT CASE
-// ========================
 export const patientCase = {
   filter: async (filters = {}, sortBy = "") => {
     const queryParams = new URLSearchParams();
+
     Object.entries(filters || {}).forEach(([k, v]) =>
       queryParams.append(k, v)
     );
+
     if (sortBy) queryParams.append("sort", sortBy);
 
     return apiCall(`/patient-cases?${queryParams.toString()}`);
@@ -179,15 +175,15 @@ export const patientCase = {
     apiCall(`/patient-cases/${id}`, { method: "DELETE" }),
 };
 
-// ========================
 // CASE COMMENTS
-// ========================
 export const caseComment = {
   filter: async (filters = {}, sortBy = "") => {
     const queryParams = new URLSearchParams();
+
     Object.entries(filters || {}).forEach(([k, v]) =>
       queryParams.append(k, v)
     );
+
     if (sortBy) queryParams.append("sort", sortBy);
 
     return apiCall(`/case-comments?${queryParams.toString()}`);
@@ -217,12 +213,11 @@ export const caseComment = {
     }),
 };
 
-// ========================
 // CONVERSATION
-// ========================
 export const conversation = {
   filter: async (filters = {}) => {
     const queryParams = new URLSearchParams();
+
     Object.entries(filters || {}).forEach(([k, v]) =>
       queryParams.append(k, v)
     );
@@ -248,12 +243,11 @@ export const conversation = {
     apiCall(`/conversations/${id}`, { method: "DELETE" }),
 };
 
-// ========================
 // MESSAGES
-// ========================
 export const message = {
   filter: async (filters = {}) => {
     const queryParams = new URLSearchParams();
+
     Object.entries(filters || {}).forEach(([k, v]) =>
       queryParams.append(k, v)
     );
@@ -279,12 +273,11 @@ export const message = {
     apiCall(`/messages/${id}`, { method: "DELETE" }),
 };
 
-// ========================
 // MEDICAL EVENTS
-// ========================
 export const medicalEvent = {
   filter: async (filters = {}) => {
     const queryParams = new URLSearchParams();
+
     Object.entries(filters || {}).forEach(([k, v]) =>
       queryParams.append(k, v)
     );
@@ -307,14 +300,13 @@ export const medicalEvent = {
     }),
 };
 
-// ========================
 // REFERENCES
-// ========================
 export const references = {
-  search: async (query, offset = 0, limit = 20) =>
+  // Page-based PubMed search with sorting support.
+  search: async (query, page = 1, retmax = 15, sort = "relevance") =>
     apiCall("/references/search", {
       method: "POST",
-      body: JSON.stringify({ query, offset, limit }),
+      body: JSON.stringify({ query, page, retmax, sort }),
     }),
 
   save: async (paper) =>
@@ -328,22 +320,22 @@ export const references = {
       method: "DELETE",
     }),
 
-  getSaved: async () =>
-    apiCall("/references/saved"),
+  getSaved: async () => apiCall("/references/saved"),
 };
 
-// ========================
 // ZOTERO
-// ========================
 export const zotero = {
-  status: async () =>
-    apiCall("/zotero/status"),
+  status: async () => apiCall("/zotero/status"),
 
-  connect: async () =>
-    apiCall("/zotero/connect"),
+  connect: async () => apiCall("/zotero/connect"),
 
-  collections: async () =>
-    apiCall("/zotero/collections"),
+  collections: async () => apiCall("/zotero/collections"),
+
+  createCollection: async (name) =>
+    apiCall("/zotero/collections", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
 
   push: async (data = {}) =>
     apiCall("/zotero/push", {
@@ -357,102 +349,114 @@ export const zotero = {
     }),
 };
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-});
-
-// ========================
 // ADMIN
-// ========================
 export const admin = {
-  getAnalytics:       () => apiCall("/admin/analytics"),
-  getUsers:           () => apiCall("/admin/users"),
-  deleteUser:        id => apiCall(`/admin/users/${id}`,              { method: "DELETE" }),
-  verifyUser:        id => apiCall(`/admin/users/${id}/verify`,       { method: "PATCH" }),
-  toggleAdmin:       id => apiCall(`/admin/users/${id}/toggle-admin`, { method: "PATCH" }),
+  getAnalytics: () => apiCall("/admin/analytics"),
 
-  getCases:           () => apiCall("/admin/cases"),
-  deleteCase:        id => apiCall(`/admin/cases/${id}`,              { method: "DELETE" }),
-  updateCaseStatus: (id, status) => apiCall(`/admin/cases/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  getUsers: () => apiCall("/admin/users"),
 
-  getEvents:          () => apiCall("/admin/events"),
-  deleteEvent:       id => apiCall(`/admin/events/${id}`,             { method: "DELETE" }),
+  deleteUser: (id) =>
+    apiCall(`/admin/users/${id}`, { method: "DELETE" }),
 
-  getConversations:   () => apiCall("/admin/conversations"),
-  deleteConversation:id => apiCall(`/admin/conversations/${id}`,      { method: "DELETE" }),
+  verifyUser: (id) =>
+    apiCall(`/admin/users/${id}/verify`, { method: "PATCH" }),
 
-  getProfiles:        () => apiCall("/admin/profiles"),
-  deleteProfile:     id => apiCall(`/admin/profiles/${id}`,           { method: "DELETE" }),
+  toggleAdmin: (id) =>
+    apiCall(`/admin/users/${id}/toggle-admin`, { method: "PATCH" }),
 
-  getReferences:      () => apiCall("/admin/references"),
-  deleteReference:   id => apiCall(`/admin/references/${id}`,         { method: "DELETE" }),
+  getCases: () => apiCall("/admin/cases"),
+
+  deleteCase: (id) =>
+    apiCall(`/admin/cases/${id}`, { method: "DELETE" }),
+
+  updateCaseStatus: (id, status) =>
+    apiCall(`/admin/cases/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+
+  getEvents: () => apiCall("/admin/events"),
+
+  deleteEvent: (id) =>
+    apiCall(`/admin/events/${id}`, { method: "DELETE" }),
+
+  getConversations: () => apiCall("/admin/conversations"),
+
+  deleteConversation: (id) =>
+    apiCall(`/admin/conversations/${id}`, { method: "DELETE" }),
+
+  getProfiles: () => apiCall("/admin/profiles"),
+
+  deleteProfile: (id) =>
+    apiCall(`/admin/profiles/${id}`, { method: "DELETE" }),
+
+  getReferences: () => apiCall("/admin/references"),
+
+  deleteReference: (id) =>
+    apiCall(`/admin/references/${id}`, { method: "DELETE" }),
 };
 
-// ========================
 // DRUGS
-// ========================
 export const drugs = {
   search: (q, limit = 10) =>
-    apiCall(`/drugs/search?q=${encodeURIComponent(q)}&limit=${limit}`),
-  detail: (name = '', rxcui = '') =>
-    apiCall(`/drugs/detail?name=${encodeURIComponent(name)}&rxcui=${encodeURIComponent(rxcui)}`),
+    apiCall(
+      `/drugs/search?q=${encodeURIComponent(q)}&limit=${limit}`
+    ),
+
+  detail: (name = "", rxcui = "") =>
+    apiCall(
+      `/drugs/detail?name=${encodeURIComponent(name)}&rxcui=${encodeURIComponent(rxcui)}`
+    ),
 };
 
-// ========================
 // NEWS
-// ========================
 export const news = {
   list: (filters = {}) => {
     const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => queryParams.append(k, v));
+
+    Object.entries(filters).forEach(([k, v]) =>
+      queryParams.append(k, v)
+    );
+
     return apiCall(`/news?${queryParams.toString()}`);
   },
 };
 
-// ========================
 // CONTACTS
-// ========================
 export const contacts = {
-  listGroups: () =>
-    apiCall('/contacts/groups'),
+  listGroups: () => apiCall("/contacts/groups"),
 
   createGroup: (name, color) =>
-    apiCall('/contacts/groups', {
-      method: 'POST',
+    apiCall("/contacts/groups", {
+      method: "POST",
       body: JSON.stringify({ name, color }),
     }),
 
   updateGroup: (id, data) =>
     apiCall(`/contacts/groups/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     }),
 
   deleteGroup: (id) =>
-    apiCall(`/contacts/groups/${id}`, { method: 'DELETE' }),
+    apiCall(`/contacts/groups/${id}`, { method: "DELETE" }),
 
-  // sends email (doctor.created_by) since DoctorProfile has no numeric user_id exposed
+  // Uses the doctor's email because DoctorProfile does not expose a numeric user ID.
   addMember: (groupId, email) =>
     apiCall(`/contacts/groups/${groupId}/members`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ email }),
     }),
 
   removeMember: (groupId, userId) =>
     apiCall(`/contacts/groups/${groupId}/members/${userId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
 
-  allContacts: () =>
-    apiCall('/contacts/all'),
+  allContacts: () => apiCall("/contacts/all"),
 };
 
-// ========================
 // EXPORT GROUP
-// ========================
 export const entities = {
   DoctorProfile: doctorProfile,
   PatientCase: patientCase,
@@ -463,4 +467,11 @@ export const entities = {
   References: references,
 };
 
-export default { auth, entities, zotero, contacts, news , drugs };
+export default {
+  auth,
+  entities,
+  zotero,
+  contacts,
+  news,
+  drugs,
+};
